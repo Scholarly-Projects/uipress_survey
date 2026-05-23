@@ -6,7 +6,7 @@
 <title>University of Idaho Press — Bibliometric Survey</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Source+Serif+4:opsz,wght@8..60,300;8..60,400&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Public+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
 <style>
 :root {
@@ -29,7 +29,7 @@
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: "Source Serif 4", Georgia, serif;
+  font-family: "Public Sans", system-ui, sans-serif;
   font-weight: 300;
   line-height: 1.7;
 }
@@ -50,10 +50,10 @@ body {
 .page-header .sub {
   font-size: 0.82rem;
   color: var(--text-muted);
-  font-family: "JetBrains Mono", monospace;
+  font-family: "Public Sans", system-ui, sans-serif;
   font-weight: 300;
   margin-top: 0.6rem;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
 }
 .header-desc {
   font-size: 0.84rem;
@@ -79,9 +79,9 @@ body {
 .stat-label {
   font-size: 0.75rem;
   color: var(--text-muted);
-  font-family: "JetBrains Mono", monospace;
-  font-weight: 300;
-  letter-spacing: 0.06em;
+  font-family: "Public Sans", system-ui, sans-serif;
+  font-weight: 400;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   margin-top: 0.2rem;
   display: block;
@@ -130,13 +130,13 @@ body {
   gap: 5px;
   font-size: 11px;
   color: var(--text-muted);
-  font-family: "JetBrains Mono", monospace;
+  font-family: "Public Sans", system-ui, sans-serif;
 }
 .l-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
 .l-sq  { width: 9px; height: 9px; flex-shrink: 0; }
 .axis text {
   fill: var(--text-muted);
-  font-family: "JetBrains Mono", monospace;
+  font-family: "Public Sans", system-ui, sans-serif;
   font-size: 11px;
 }
 .axis line, .axis path { stroke: var(--border); }
@@ -149,7 +149,7 @@ body {
   border: 1px solid var(--border);
   border-left: 3px solid var(--amber);
   padding: 10px 13px;
-  font-family: "Source Serif 4", serif;
+  font-family: "Public Sans", system-ui, sans-serif;
   font-size: 12.5px;
   color: var(--text);
   max-width: min(310px, calc(100vw - 24px));
@@ -168,7 +168,8 @@ body {
   margin-bottom: 3px;
 }
 #tooltip .tm {
-  font-family: "JetBrains Mono", monospace;
+  font-family: "Public Sans", system-ui, sans-serif;
+  font-weight: 400;
   font-size: 10.5px;
   color: var(--text-muted);
   margin-bottom: 2px;
@@ -350,7 +351,7 @@ window.addEventListener('scroll', function() {
 
 <div class="page-header">
   <h1>University of Idaho Press<br><span>Bibliometric Survey</span></h1>
-  <p class="sub">1966 – 2012 · subject headings · technical details · themes over time</p>
+  <p class="sub">subject headings · technical details · themes over time</p>
   <div class="stats-row" id="stats"></div>
   <p class="header-desc">Visualizations to help inform University of Idaho Press decisions on selecting legacy titles for republication. Original export data was standardized and deduplicated. Technical details were separated and page count data combined. See the button on the bottom of the interface to view raw data.</p>
 </div>
@@ -383,7 +384,7 @@ window.addEventListener('scroll', function() {
 <section class="viz-section" id="sec-overlap">
   <div class="section-header">
     <h2>Subject Frequency</h2>
-    <p>Subject headings with three or more subgroups, arranged most-to-least frequent from top-left to bottom-right. Each heading ring has a unique color shared by its subgroup dots. Hover any ring for all titles under that heading; hover any dot to reveal the subgroup name and its titles.</p>
+    <p>Legacy subject headings with three or more subgroups, arranged most-to-least frequent from top-left to bottom-right. Each heading ring has a unique color shared by its subgroup dots. Hover any ring for all titles under that heading; hover any dot to reveal the subgroup name and its titles.</p>
   </div>
   <div class="chart-wrap">
     <div id="c4"></div>
@@ -395,7 +396,7 @@ window.addEventListener('scroll', function() {
 <section class="viz-section" id="sec-tech">
   <div class="section-header">
     <h2>Technical Details</h2>
-    <p>All 125 titles with recorded page counts, sorted page count lowest to highest. Bars segmented by pages, dimensions, and illustration type count. Titles with no illustrations show only pages and dimensions. Click any bar to open its library record.</p>
+    <p>All 125 titles with recorded page counts, sorted lowest to highest. Bars segmented by pages, book dimensions, and illustration type count. Titles with no illustrations show only pages and dimensions. Select any bar to open the U of I record.</p>
   </div>
   <div class="chart-wrap">
     <div id="ctech"></div>
@@ -534,9 +535,9 @@ function hideTip() { tip.classList.remove("show"); }
 
 
   g.append("text").attr("x",w/2).attr("y",h+40).attr("text-anchor","middle")
-    .attr("fill","var(--text-muted)").attr("font-family","JetBrains Mono,monospace").attr("font-size",11).text("Publication Year");
+    .attr("fill","var(--text-muted)").attr("font-family","Public Sans,sans-serif").attr("font-size",11).text("Publication Year");
   g.append("text").attr("transform","rotate(-90)").attr("x",-h/2).attr("y",-43)
-    .attr("text-anchor","middle").attr("fill","var(--text-muted)").attr("font-family","JetBrains Mono,monospace").attr("font-size",11).text("Total Pages");
+    .attr("text-anchor","middle").attr("fill","var(--text-muted)").attr("font-family","Public Sans,sans-serif").attr("font-size",11).text("Total Pages");
 
 
   const timelineBooks = books.filter(d => d.totalPages > 0);
@@ -641,7 +642,7 @@ function hideTip() { tip.classList.remove("show"); }
       .attr("y", h + 28)
       .attr("text-anchor","middle")
       .attr("fill","var(--text-dim)")
-      .attr("font-family","JetBrains Mono,monospace")
+      .attr("font-family","Public Sans,sans-serif")
       .attr("font-size", 10)
       .text("n=" + dec.total);
   });
@@ -657,7 +658,7 @@ function hideTip() { tip.classList.remove("show"); }
   g.append("text").attr("x", w/2).attr("y", h + 52)
     .attr("text-anchor","middle")
     .attr("fill","var(--text-muted)")
-    .attr("font-family","JetBrains Mono,monospace")
+    .attr("font-family","Public Sans,sans-serif")
     .attr("font-size", 11)
     .text("Decade");
 
@@ -666,7 +667,7 @@ function hideTip() { tip.classList.remove("show"); }
     .attr("x", -h/2).attr("y", -38)
     .attr("text-anchor","middle")
     .attr("fill","var(--text-muted)")
-    .attr("font-family","JetBrains Mono,monospace")
+    .attr("font-family","Public Sans,sans-serif")
     .attr("font-size", 11)
     .text("Titles with theme");
 
@@ -845,7 +846,7 @@ function hideTip() { tip.classList.remove("show"); }
         .attr('y', n.y - totalH / 2 + li * lh + lh * 0.82)
         .attr('text-anchor', 'middle')
         .attr('fill', n.color)
-        .attr('font-family', '"Source Serif 4",serif')
+        .attr('font-family', '"Public Sans",sans-serif')
         .attr('font-size', fs)
         .attr('pointer-events', 'none')
         .text(line);
@@ -957,7 +958,7 @@ function hideTip() { tip.classList.remove("show"); }
     .attr("x", d => x(d.pagesVal + d.dimVal + d.illTypesVal) + 4)
     .attr("y", d => y(d.title) + y.bandwidth() / 2 + 4)
     .attr("fill","var(--text-muted)")
-    .attr("font-family","JetBrains Mono,monospace")
+    .attr("font-family","Public Sans,sans-serif")
     .attr("font-size", 9)
     .text(d => d.totalPages + "pp");
 
@@ -966,7 +967,7 @@ function hideTip() { tip.classList.remove("show"); }
     .call(d3.axisLeft(y).tickFormat(d => trunc(d, 40)))
     .selectAll(".tick text")
     .attr("fill","var(--text-muted)")
-    .attr("font-family","Source Serif 4,serif")
+    .attr("font-family","Public Sans,sans-serif")
     .attr("font-size", 10.5)
     .attr("text-anchor","start")
     .attr("x", -282)
@@ -982,7 +983,7 @@ function hideTip() { tip.classList.remove("show"); }
     .attr("x", w/2).attr("y", h + 38)
     .attr("text-anchor","middle")
     .attr("fill","var(--text-muted)")
-    .attr("font-family","JetBrains Mono,monospace")
+    .attr("font-family","Public Sans,sans-serif")
     .attr("font-size", 11)
     .text("Pages  +  Dimensions ×5  +  Illustration Types ×15");
 
@@ -999,8 +1000,8 @@ function hideTip() { tip.classList.remove("show"); }
 
 
 <footer style="max-width:1100px;margin:0 auto;padding:2rem 3rem 3rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;border-top:1px solid var(--border);">
-  <span style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:var(--text-dim);letter-spacing:0.04em;">uofipress_standardized.csv · 125 records · Andrew Weymouth, Summer 2026.</span>
-  <button onclick="openCsvModal()" style="display:inline-flex;align-items:center;gap:7px;font-family:'JetBrains Mono',monospace;font-size:0.78rem;font-weight:400;color:var(--text-muted);background:none;border:1px solid var(--border);padding:0.45rem 0.9rem;cursor:pointer;letter-spacing:0.04em;transition:border-color 0.15s,color 0.15s;" onmouseover="this.style.borderColor='var(--amber)';this.style.color='var(--amber)';" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)';">
+  <span style="font-family:'Public Sans',sans-serif;font-size:0.78rem;color:var(--text-dim);letter-spacing:0.04em;">uofipress_standardized.csv · 125 records · Andrew Weymouth, Summer 2026.</span>
+  <button onclick="openCsvModal()" style="display:inline-flex;align-items:center;gap:7px;font-family:'Public Sans',sans-serif;font-size:0.78rem;font-weight:400;color:var(--text-muted);background:none;border:1px solid var(--border);padding:0.45rem 0.9rem;cursor:pointer;letter-spacing:0.04em;transition:border-color 0.15s,color 0.15s;" onmouseover="this.style.borderColor='var(--amber)';this.style.color='var(--amber)';" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)';">
     <svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;opacity:0.7">
       <path d="M2 3.5A1.5 1.5 0 013.5 2h9A1.5 1.5 0 0114 3.5v9a1.5 1.5 0 01-1.5 1.5h-9A1.5 1.5 0 012 12.5v-9z" stroke="currentColor" stroke-width="1.2"/>
       <path d="M5 6l2 2-2 2M8.5 10h2.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -1011,13 +1012,13 @@ function hideTip() { tip.classList.remove("show"); }
 <div id="csv-modal" style="display:none;position:fixed;inset:0;background:rgba(28,24,20,0.82);z-index:2000;align-items:center;justify-content:center;padding:1.5rem;">
   <div style="background:var(--bg-card);border:1px solid var(--border);border-top:3px solid var(--amber);max-width:960px;width:100%;max-height:82vh;display:flex;flex-direction:column;border-radius:2px;">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:0.85rem 1.25rem;border-bottom:1px solid var(--border);flex-shrink:0;">
-      <span style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:var(--text-muted);letter-spacing:0.04em;">uofipress_standardized_permalink.csv &middot; 125 records</span>
+      <span style="font-family:'Public Sans',sans-serif;font-size:0.78rem;color:var(--text-muted);letter-spacing:0.04em;">uofipress_standardized_permalink.csv &middot; 125 records</span>
       <div style="display:flex;gap:0.5rem;">
-        <button onclick="downloadCsv()" style="font-family:'JetBrains Mono',monospace;font-size:0.74rem;color:var(--text-muted);background:none;border:1px solid var(--border);padding:0.28rem 0.7rem;cursor:pointer;transition:border-color 0.12s,color 0.12s;" onmouseover="this.style.borderColor='var(--amber)';this.style.color='var(--amber)';" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)';">&#8595; Download</button>
-        <button onclick="closeCsvModal()" style="font-family:'JetBrains Mono',monospace;font-size:0.74rem;color:var(--text-muted);background:none;border:1px solid var(--border);padding:0.28rem 0.7rem;cursor:pointer;transition:border-color 0.12s,color 0.12s;" onmouseover="this.style.borderColor='var(--amber)';this.style.color='var(--amber)';" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)';">&#10005; Close</button>
+        <button onclick="downloadCsv()" style="font-family:'Public Sans',sans-serif;font-size:0.74rem;color:var(--text-muted);background:none;border:1px solid var(--border);padding:0.28rem 0.7rem;cursor:pointer;transition:border-color 0.12s,color 0.12s;" onmouseover="this.style.borderColor='var(--amber)';this.style.color='var(--amber)';" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)';">&#8595; Download</button>
+        <button onclick="closeCsvModal()" style="font-family:'Public Sans',sans-serif;font-size:0.74rem;color:var(--text-muted);background:none;border:1px solid var(--border);padding:0.28rem 0.7rem;cursor:pointer;transition:border-color 0.12s,color 0.12s;" onmouseover="this.style.borderColor='var(--amber)';this.style.color='var(--amber)';" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)';">&#10005; Close</button>
       </div>
     </div>
-    <pre id="csv-pre" style="margin:0;padding:1rem 1.25rem;overflow:auto;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--text);line-height:1.55;background:var(--bg);flex:1;white-space:pre;"></pre>
+    <pre id="csv-pre" style="margin:0;padding:1rem 1.25rem;overflow:auto;font-family:'Public Sans',sans-serif;font-size:10.5px;color:var(--text);line-height:1.55;background:var(--bg);flex:1;white-space:pre;"></pre>
   </div>
 </div>
 <script>
