@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en" style="scroll-behavior:smooth;">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>University of Idaho Press — Bibliometric Analysis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=Source+Serif+4:opsz,wght@8..60,300;8..60,400&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<style>
+:root {
+  --bg: #faf8f4;
+  --bg-card: #ffffff;
+  --border: #ddd8ce;
+  --text: #1c1814;
+  --text-muted: #6a5e4a;
+  --text-dim: #b8ae9e;
+  --amber: #8a5a10;
+  --amber-lt: #a06820;
+  --teal: #2a6a5c;
+  --rust: #9a3a1a;
+  --purple: #6a3a95;
+  --blue: #2a4a95;
+  --rose: #952848;
+  --green: #2a6a3a;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Source Serif 4", Georgia, serif;
+  font-weight: 300;
+  line-height: 1.7;
+}
+.page-header {
+  padding: 3.5rem 3rem 2.5rem;
+  border-bottom: 1px solid var(--border);
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.page-header h1 {
+  font-family: "Playfair Display", serif;
+  font-size: 2.2rem;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+.page-header h1 span { color: var(--amber); }
+.page-header .sub {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-family: "JetBrains Mono", monospace;
+  font-weight: 300;
+  margin-top: 0.6rem;
+  letter-spacing: 0.04em;
+}
+.header-desc {
+  font-size: 0.84rem;
+  color: var(--text-muted);
+  margin-top: 1.25rem;
+  line-height: 1.6;
+  max-width: none;
+}
+.stats-row {
+  display: flex;
+  gap: 2.5rem;
+  margin-top: 2rem;
+  flex-wrap: wrap;
+  padding-bottom: 0.25rem;
+}
+.stat-value {
+  font-family: "Playfair Display", serif;
+  font-size: 1.9rem;
+  color: var(--amber);
+  line-height: 1;
+  display: block;
+}
+.stat-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-family: "JetBrains Mono", monospace;
+  font-weight: 300;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-top: 0.2rem;
+  display: block;
+}
+.viz-section {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2.5rem 3rem;
+  border-bottom: 1px solid var(--border);
+}
+.section-header h2 {
+  font-family: "Playfair Display", serif;
+  font-size: 1.3rem;
+  font-weight: 400;
+}
+.section-header h2 span {
+  color: var(--amber);
+  font-style: italic;
+}
+.section-header p {
+  font-size: 0.84rem;
+  color: var(--text-muted);
+  margin-top: 0.3rem;
+  line-height: 1.6;
+}
+.chart-wrap {
+  margin-top: 1.25rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  padding: 1.25rem 1.5rem 1rem;
+  overflow-x: auto;
+}
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin-top: 0.9rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--border);
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: "JetBrains Mono", monospace;
+}
+.l-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.l-sq  { width: 9px; height: 9px; flex-shrink: 0; }
+.axis text {
+  fill: var(--text-muted);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+}
+.axis line, .axis path { stroke: var(--border); }
+.grid line { stroke: var(--border); stroke-opacity: 0.6; stroke-dasharray: 2 3; }
+.grid path { stroke: none; }
+#tooltip {
+  position: fixed;
+  pointer-events: none;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--amber);
+  padding: 10px 13px;
+  font-family: "Source Serif 4", serif;
+  font-size: 12.5px;
+  color: var(--text);
+  max-width: 310px;
+  line-height: 1.5;
+  z-index: 999;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+#tooltip.show { opacity: 1; }
+#tooltip strong {
+  display: block;
+  font-family: "Playfair Display", serif;
+  color: var(--amber-lt);
+  font-size: 13px;
+  line-height: 1.3;
+  margin-bottom: 3px;
+}
+#tooltip .tm {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 10.5px;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+  display: block;
+}
+#tooltip .ts {
+  font-size: 11.5px;
+  border-top: 1px solid var(--border);
+  margin-top: 5px;
+  padding-top: 5px;
+  display: block;
+  color: var(--text-muted);
+}
+#sidenav {
+  position: fixed;
+  left: 36px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 130px;
+}
+#sidenav a {
+  display: block;
+  font-family: "Playfair Display", serif;
+  font-size: 0.88rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  text-decoration: none;
+  line-height: 1.35;
+  padding: 2px 0;
+  transition: color 0.13s;
+}
+#sidenav a:hover {
+  color: var(--amber);
+}
+@media (max-width: 768px) {
+  #sidenav { display: none; }
+}
+#top-btn {
+  position: fixed;
+  bottom: 28px;
+  right: 28px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: none;
+  border: 1.5px solid #8a5a10;
+  color: #8a5a10;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+  z-index: 300;
+}
+#top-btn.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+#top-btn:hover {
+  background: rgba(138,90,16,0.08);
+}
+</style>
+</head>
+<body>
+<nav id="sidenav" aria-label="Jump to visualization">
+  <a href="#sec-timeline">Publications<br>Over Time</a>
+  <a href="#sec-themes">Thematic<br>Distribution</a>
+  <a href="#sec-overlap">Subject<br>Overlap</a>
+  <a href="#sec-tech">Technical<br>Details</a>
+</nav>
+<button id="top-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Back to top">
+  <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+    <polygon points="6,2 11,10 1,10" fill="#8a5a10"/>
+  </svg>
+</button>
+<script>
+window.addEventListener('scroll', function() {
+  document.getElementById('top-btn').classList.toggle('visible', window.scrollY > 300);
+});
+</script>
+
+<div class="page-header">
+  <h1>University of Idaho Press<br><span>Bibliometric Analysis</span></h1>
+  <p class="sub">1966 – 2012 · subject headings · processing difficulty · thematic distribution</p>
+  <div class="stats-row" id="stats"></div>
+  <p class="header-desc">Visualizations to help inform University of Idaho Press decisions on selecting legacy titles for republication. Original export data was standardized and deduplicated. Technical details were separated and page count data combined.</p>
+</div>
+
+<section class="viz-section" id="sec-timeline">
+  <div class="section-header">
+    <h2>Publications Over Time — <span>scope &amp; page count</span></h2>
+    <p>Each node is one title. Horizontal position = publication year. Vertical position = total page count. Scale represents subject heading count. Color represents genre. Hover for technical details. Select any node to open its library record.</p>
+  </div>
+  <div class="chart-wrap">
+    <div id="c1"></div>
+    <div class="legend" id="l1"></div>
+  </div>
+</section>
+
+<section class="viz-section" id="sec-themes">
+  <div class="section-header">
+    <h2>Thematic Distribution — <span>by decade</span></h2>
+    <p>Subject headings standardized into eight themes. Each bar group represents one decade.</p>
+  </div>
+  <div class="chart-wrap">
+    <div id="c3"></div>
+    <div class="legend" id="l3"></div>
+  </div>
+</section>
+
+<section class="viz-section" id="sec-overlap">
+  <div class="section-header">
+    <h2>Subject Overlap — <span>frequency across the corpus</span></h2>
+    <p>Subject headings with three or more subgroups, arranged most-to-least frequent from top-left to bottom-right. Each heading ring has a unique color shared by its subgroup dots. Hover any ring for all titles under that heading; hover any dot to reveal the subgroup name and its titles.</p>
+  </div>
+  <div class="chart-wrap">
+    <div id="c4"></div>
+    <div class="legend" id="l4"></div>
+  </div>
+</section>
+
+<section class="viz-section" id="sec-tech">
+  <div class="section-header">
+    <h2>Technical Details — <span>all titles by page count</span></h2>
+    <p>All 125 titles with recorded page counts, sorted page count lowest to highest. Bars segmented by pages, dimensions, and illustration type count. Titles with no illustrations show only pages and dimensions. Click any bar to open its library record.</p>
+  </div>
+  <div class="chart-wrap">
+    <div id="ctech"></div>
+    <div class="legend" id="ltech"></div>
+  </div>
+</section>
+
+<div id="tooltip"></div>
+
+<script>
+// ================================================================
+// DATA
+// ================================================================
+const DATA = [{"title": "The Jesuits and the Indian wars of the Northwest", "author": "Burns, Robert Ignatius.", "year": 1966, "originalPub": null, "subjects": ["Indians of North America -- Wars -- 1815-1875", "Indians of North America -- Northwest, Pacific -- History", "Jesuits -- Northwest, Pacific"], "subjectsTop": ["Indians of North America", "Indians of North America", "Jesuits"], "genres": ["History"], "totalPages": 526, "hasIllustrations": true, "illTypes": ["maps"], "illTypeCount": 1, "dimensions": 9.4, "difficulty": 6.76, "pageScore": 5.26, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9939079201851"}, {"title": "Dorothy S. Ainsworth : her life, professional career and contributions to physical education", "author": "Peterson, Hazel C. (Hazel Clara), 1927-", "year": 1975, "originalPub": null, "subjects": ["Women physical education teachers -- United States -- Biography", "Physical education teachers -- United States -- Biography", "Physical education for women -- United States -- History", "Ainsworth, Dorothy S (Dorothy Sears), 1894-1976"], "subjectsTop": ["Women physical education teachers", "Physical education teachers", "Physical education for women", "Ainsworth, Dorothy S (Dorothy Sears), 1894-1976"], "genres": ["History", "Biographies"], "totalPages": 498, "hasIllustrations": true, "illTypes": ["illustrations", "portraits"], "illTypeCount": 2, "dimensions": 11.0, "difficulty": 6.98, "pageScore": 4.98, "illScore": 1, "illTypeScore": 1.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9937308801851"}, {"title": "Winner take all : the trans-Canada canoe trail", "author": "Lavender, David, 1910-2003.", "year": 1977, "originalPub": null, "subjects": ["Fur trade -- Canada -- History", "New France -- Discovery and exploration", "Northwest, Canadian -- Discovery and exploration"], "subjectsTop": ["Fur trade", "New France", "Northwest, Canadian"], "genres": ["History"], "totalPages": 378, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 9.1, "difficulty": 5.28, "pageScore": 3.78, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9939077701851"}, {"title": "American places", "author": "Stegner, Wallace, 1909-1993, author. ; Stegner, Page, author. ; Macrae, John, editor.", "year": 1983, "originalPub": null, "subjects": ["Natural history -- United States", "United States -- Description and travel", "Stegner, Wallace, 1909-1993 -- Travel -- United States"], "subjectsTop": ["Natural history", "United States", "Stegner, Wallace, 1909-1993"], "genres": [], "totalPages": 277, "hasIllustrations": false, "illTypes": [], "illTypeCount": 0, "dimensions": 9.1, "difficulty": 2.77, "pageScore": 2.77, "illScore": 0, "illTypeScore": 0.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9935898901851"}, {"title": "Shifting cultivation and the use of fire in forest zones of the tropics", "author": "Peters, William John. ; Neuenschwander, Leon F.", "year": 1984, "originalPub": null, "subjects": ["Shifting cultivation -- Tropics", "Prescribed burning -- Tropics"], "subjectsTop": ["Shifting cultivation", "Prescribed burning"], "genres": [], "totalPages": 200, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 11.0, "difficulty": 3.5, "pageScore": 2.0, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9947394601851"}, {"title": "Mark Twain's America", "author": "De Voto, Bernard, 1897-1955.", "year": 1985, "originalPub": 1932, "subjects": ["Twain, Mark, 1835-1910"], "subjectsTop": ["Twain, Mark, 1835-1910"], "genres": [], "totalPages": 369, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 9.1, "difficulty": 5.19, "pageScore": 3.69, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9936674801851"}, {"title": "Bonanza West : the story of the Western mining rushes, 1848-1900", "author": "Greever, William S.", "year": 1986, "originalPub": 1963, "subjects": ["Mines and mineral resources -- West (U.S.)", "Frontier and pioneer life -- West (U.S.)", "Klondike River Valley (Yukon) -- Gold discoveries"], "subjectsTop": ["Mines and mineral resources", "Frontier and pioneer life", "Klondike River Valley (Yukon)"], "genres": [], "totalPages": 443, "hasIllustrations": true, "illTypes": ["maps"], "illTypeCount": 1, "dimensions": 9.1, "difficulty": 5.93, "pageScore": 4.43, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9940743501851"}, {"title": "The peregrine", "author": "Baker, John Alec.", "year": 1986, "originalPub": 1967, "subjects": ["Peregrine falcon -- Anecdotes"], "subjectsTop": ["Peregrine falcon"], "genres": ["Anecdotes"], "totalPages": 191, "hasIllustrations": false, "illTypes": [], "illTypeCount": 0, "dimensions": 8.7, "difficulty": 1.91, "pageScore": 1.91, "illScore": 0, "illTypeScore": 0.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9937879601851"}, {"title": "The university fitness program : aerobics, lifting, diet, and nutrition", "author": "Stoll, Sharon Kay.", "year": 1986, "originalPub": null, "subjects": ["Aerobic dancing -- Handbooks, manuals, etc", "Physical fitness -- Handbooks, manuals, etc", "Physical fitness -- Nutritional aspects -- Handbooks, manuals, etc", "Exercise", "Weight lifting -- Handbooks, manuals, etc", "Nutrition", "Vasomotor conditioning", "Physical fitness"], "subjectsTop": ["Aerobic dancing", "Physical fitness", "Physical fitness", "Exercise", "Weight lifting", "Nutrition", "Vasomotor conditioning", "Physical fitness"], "genres": ["Handbooks and manuals"], "totalPages": 121, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 9.1, "difficulty": 2.71, "pageScore": 1.21, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9942603401851"}, {"title": "Collected essays and short stories ; Works. Selections. 1986", "author": "Davis, H. L. (Harold Lenoir), 1896-1960.", "year": 1990, "originalPub": 1986, "subjects": ["Western stories", "Northwest, Pacific -- Social life and customs -- Fiction", "Northwest, Pacific -- Civilization"], "subjectsTop": ["Western stories", "Northwest, Pacific", "Northwest, Pacific"], "genres": ["essays", "short stories", "Fiction", "Essays", "Short stories"], "totalPages": 376, "hasIllustrations": false, "illTypes": [], "illTypeCount": 0, "dimensions": 8.7, "difficulty": 3.76, "pageScore": 3.76, "illScore": 0, "illTypeScore": 0.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9915190901851"}, {"title": "The community of cattlemen : a social history of the cattle industry in southeastern Oregon, 1869-1912", "author": "Simpson, Peter K., 1930-", "year": 1987, "originalPub": null, "subjects": ["Cattle trade -- Oregon -- Harney County -- History", "Ranchers -- Oregon -- Harney County -- History", "Ranchers -- Oregon -- Harney County -- History", "Cattle breeders -- Oregon -- Harney County -- History", "Cattle -- Commerce -- Oregon -- Harney County -- History", "Harney County (Or.) -- History"], "subjectsTop": ["Cattle trade", "Ranchers", "Ranchers", "Cattle breeders", "Cattle", "Harney County (Or.)"], "genres": ["History"], "totalPages": 242, "hasIllustrations": true, "illTypes": ["illustrations", "maps"], "illTypeCount": 2, "dimensions": 9.1, "difficulty": 4.42, "pageScore": 2.42, "illScore": 1, "illTypeScore": 1.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9939769201851"}, {"title": "Bricks and brickmaking : a handbook for historical archaeology", "author": "Gurcke, Karl, 1948-", "year": 1987, "originalPub": null, "subjects": ["Archaeology and history -- United States", "Brickmaking -- United States", "Bricks -- United States", "United States -- Antiquities"], "subjectsTop": ["Archaeology and history", "Brickmaking", "Bricks", "United States"], "genres": [], "totalPages": 342, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 9.1, "difficulty": 4.92, "pageScore": 3.42, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9939831201851"}, {"title": "This crested hill : an illustrated history of the University of Idaho", "author": "Petersen, Keith.", "year": 1987, "originalPub": null, "subjects": ["University of Idaho -- History", "University of Idaho -- Pictorial works"], "subjectsTop": ["University of Idaho", "University of Idaho"], "genres": ["History", "Illustrated works"], "totalPages": 245, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 12.2, "difficulty": 3.95, "pageScore": 2.45, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9940570701851"}, {"title": "The villanelle : the evolution of a poetic form", "author": "McFarland, Ronald E.", "year": 1987, "originalPub": null, "subjects": ["English poetry -- History and criticism", "Villanelles -- History and criticism", "English poetry -- European influences", "Romance-language poetry -- History and criticism", "Literary form", "Comparative literature -- English and Romance", "Comparative literature -- English and Romance"], "subjectsTop": ["English poetry", "Villanelles", "English poetry", "Romance-language poetry", "Literary form", "Comparative literature", "Comparative literature"], "genres": ["Criticism, interpretation, etc"], "totalPages": 173, "hasIllustrations": false, "illTypes": [], "illTypeCount": 0, "dimensions": 9.1, "difficulty": 1.73, "pageScore": 1.73, "illScore": 0, "illTypeScore": 0.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9941755501851"}, {"title": "The horse interlude : a pictorial history of horse and man in the inland Northwest", "author": "Keith, T. B. (Thomas Byron), 1896- ; Pole, Gregory A., illustrator. ; Anderson, Clifton E., 1923-2015, editor.", "year": 1988, "originalPub": 1976, "subjects": ["Horses -- Northwest, Pacific -- History", "Draft horses -- Northwest, Pacific -- History", "Wheat -- Northwest, Pacific -- History"], "subjectsTop": ["Horses", "Draft horses", "Wheat"], "genres": ["History"], "totalPages": 195, "hasIllustrations": true, "illTypes": ["illustrations", "maps", "portraits"], "illTypeCount": 3, "dimensions": 11.0, "difficulty": 4.45, "pageScore": 1.95, "illScore": 1, "illTypeScore": 1.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma99335260194201451"}, {"title": "Unearned pleasures and other stories", "author": "Hegi, Ursula, author.", "year": 1988, "originalPub": null, "subjects": ["Germany -- Social life and customs -- Fiction"], "subjectsTop": ["Germany"], "genres": ["Fiction"], "totalPages": 119, "hasIllustrations": false, "illTypes": [], "illTypeCount": 0, "dimensions": 8.3, "difficulty": 1.19, "pageScore": 1.19, "illScore": 0, "illTypeScore": 0.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9943002601851"}, {"title": "Bound for Idaho : the 1864 trail journal of Julius Merrill", "author": "Merrill, Julius. ; Merrill, Irving R. (Irving Rodgers), 1919-", "year": 1988, "originalPub": null, "subjects": ["Pioneers -- West (U.S.) -- Diaries", "Oregon National Historic Trail", "West (U.S.) -- Description and travel", "West (U.S.) -- History -- 1860-1890", "Idaho -- Biography", "Merrill, Julius -- Diaries"], "subjectsTop": ["Pioneers", "Oregon National Historic Trail", "West (U.S.)", "West (U.S.)", "Idaho", "Merrill, Julius"], "genres": ["diaries", "History", "Biographies", "Diaries"], "totalPages": 240, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 8.3, "difficulty": 3.9, "pageScore": 2.4, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma994056901851"}, {"title": "We sagebrush folks", "author": "Greenwood, Annie Pike.", "year": 1988, "originalPub": null, "subjects": ["Farm life -- Idaho -- History -- 20th century", "Idaho -- Social life and customs", "Idaho -- Biography", "Greenwood, Annie Pike"], "subjectsTop": ["Farm life", "Idaho", "Idaho", "Greenwood, Annie Pike"], "genres": ["Autobiographies", "Biographies", "History"], "totalPages": 512, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 8.7, "difficulty": 6.62, "pageScore": 5.12, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9943043001851"}, {"title": "Slash and burn : farming in the Third World forest", "author": "Peters, William John. ; Neuenschwander, Leon F.", "year": 1988, "originalPub": null, "subjects": ["Shifting cultivation -- Developing countries"], "subjectsTop": ["Shifting cultivation"], "genres": [], "totalPages": 125, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 9.4, "difficulty": 2.75, "pageScore": 1.25, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9943004401851"}, {"title": "Offering smoke : the sacred pipe and Native American religion", "author": "Paper, Jordan D.", "year": 1988, "originalPub": null, "subjects": ["Calumets", "Indians of North America -- Religion", "Indians of North America -- Rites and ceremonies", "Calumets -- North America"], "subjectsTop": ["Calumets", "Indians of North America", "Indians of North America", "Calumets"], "genres": [], "totalPages": 192, "hasIllustrations": true, "illTypes": ["illustrations", "map"], "illTypeCount": 2, "dimensions": 10.2, "difficulty": 3.92, "pageScore": 1.92, "illScore": 1, "illTypeScore": 1.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9944700501851"}, {"title": "Idaho's poetry : a centennial anthology", "author": "McFarland, Ronald E.;Studebaker, William.", "year": 1988, "originalPub": null, "subjects": ["American poetry -- Idaho", "Idaho -- Poetry"], "subjectsTop": ["American poetry", "Idaho"], "genres": ["poetry"], "totalPages": 250, "hasIllustrations": false, "illTypes": [], "illTypeCount": 0, "dimensions": 9.1, "difficulty": 2.5, "pageScore": 2.5, "illScore": 0, "illTypeScore": 0.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9960088901851"}, {"title": "Conservators of hope : the Horace M. Albright conservation lectures", "author": "Albright, Horace M. (Horace Marden), 1890-1987.", "year": 1988, "originalPub": null, "subjects": ["Conservation of natural resources", "Conservation of natural resources -- United States", "Natural resources -- Management", "Natural resources -- United States -- Management", "Environmental protection", "Environmental protection -- United States"], "subjectsTop": ["Conservation of natural resources", "Conservation of natural resources", "Natural resources", "Natural resources", "Environmental protection", "Environmental protection"], "genres": [], "totalPages": 590, "hasIllustrations": true, "illTypes": ["portraits"], "illTypeCount": 1, "dimensions": 9.4, "difficulty": 7.4, "pageScore": 5.9, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9944700201851"}, {"title": "Idaho place names : a geographical dictionary", "author": "Boone, Lalia Phipps, 1907-1990.", "year": 1988, "originalPub": null, "subjects": ["Names, Geographical -- Idaho", "Idaho -- History, Local"], "subjectsTop": ["Names, Geographical", "Idaho"], "genres": ["Local history"], "totalPages": 440, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 9.1, "difficulty": 5.9, "pageScore": 4.4, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma996020701851"}, {"title": "Witchcraft and sorcery of the American native peoples", "author": "Walker, Deward E.", "year": 1989, "originalPub": null, "subjects": ["Indians -- Religion", "Eskimos -- Religion", "Shamanism -- North America", "Shamanism -- South America", "Witchcraft -- North America", "Witchcraft -- South America"], "subjectsTop": ["Indians", "Eskimos", "Shamanism", "Shamanism", "Witchcraft", "Witchcraft"], "genres": [], "totalPages": 357, "hasIllustrations": true, "illTypes": ["illustrations", "maps"], "illTypeCount": 2, "dimensions": 10.2, "difficulty": 5.57, "pageScore": 3.57, "illScore": 1, "illTypeScore": 1.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9946433001851"}, {"title": "Our promised land", "author": "Neuberger, Richard L. (Richard Lewis), 1912-1960.", "year": 1989, "originalPub": null, "subjects": ["Northwest, Pacific -- Politics and government", "Northwest, Pacific -- Economic conditions"], "subjectsTop": ["Northwest, Pacific", "Northwest, Pacific"], "genres": [], "totalPages": 416, "hasIllustrations": true, "illTypes": ["map"], "illTypeCount": 1, "dimensions": 8.7, "difficulty": 5.66, "pageScore": 4.16, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9945331401851"}, {"title": "Reminiscences : incidents in the life of a pioneer in Oregon and Idaho", "author": "Goulder, William Armistead.", "year": 1989, "originalPub": null, "subjects": ["Pioneers -- Idaho -- Biography", "Frontier and pioneer life -- Idaho", "Idaho -- Biography", "Idaho -- Social life and customs", "Idaho -- Gold discoveries", "Goulder, William Armistead"], "subjectsTop": ["Pioneers", "Frontier and pioneer life", "Idaho", "Idaho", "Idaho", "Goulder, William Armistead"], "genres": ["Autobiographies", "Biographies"], "totalPages": 392, "hasIllustrations": true, "illTypes": ["portraits"], "illTypeCount": 1, "dimensions": 8.3, "difficulty": 5.42, "pageScore": 3.92, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9946750801851"}, {"title": "The idea of agrarianism : from hunter-gatherer to agrarian radical in Western culture", "author": "Montmarquet, James A.", "year": 1989, "originalPub": null, "subjects": ["Peasants -- History", "Agriculture -- Origin", "Agriculture -- Social aspects -- History", "Agriculture and politics -- History", "Agriculture"], "subjectsTop": ["Peasants", "Agriculture", "Agriculture", "Agriculture and politics", "Agriculture"], "genres": ["History"], "totalPages": 277, "hasIllustrations": false, "illTypes": [], "illTypeCount": 0, "dimensions": 9.1, "difficulty": 2.77, "pageScore": 2.77, "illScore": 0, "illTypeScore": 0.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9945033001851"}, {"title": "The resources and attractions of Idaho territory", "author": "Strahorn, Robert E. (Robert Edmund), 1852-1944.", "year": 1990, "originalPub": null, "subjects": ["Idaho Territory -- Description and travel"], "subjectsTop": ["Idaho Territory"], "genres": [], "totalPages": 104, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 8.7, "difficulty": 2.54, "pageScore": 1.04, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma996717901851"}, {"title": "Religion in native North America", "author": "Vecsey, Christopher.", "year": 1990, "originalPub": null, "subjects": ["Indians of North America -- Religion"], "subjectsTop": ["Indians of North America"], "genres": ["Aufsatzsammlung"], "totalPages": 214, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 9.1, "difficulty": 3.64, "pageScore": 2.14, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9946656801851"}, {"title": "Stump ranch pioneer", "author": "Davis, Nelle Portrey, 1901-1986.", "year": 1990, "originalPub": null, "subjects": ["Ranch life -- Idaho -- History -- 20th century", "Frontier and pioneer life -- Idaho", "Idaho -- Social life and customs", "Idaho -- Biography", "Davis, Nelle Portrey, 1901-1986 -- Family", "Davis family"], "subjectsTop": ["Ranch life", "Frontier and pioneer life", "Idaho", "Idaho", "Davis, Nelle Portrey, 1901-1986", "Davis family"], "genres": ["History", "Biographies"], "totalPages": 265, "hasIllustrations": false, "illTypes": [], "illTypeCount": 0, "dimensions": 8.3, "difficulty": 2.65, "pageScore": 2.65, "illScore": 0, "illTypeScore": 0.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9947187301851"}, {"title": "Six decades back", "author": "Walgamott, Charles S. (Charles Shirley), 1857-1937. ;Arrington, Leonard J.; Hall, R. H. (Robert H.)", "year": 1990, "originalPub": null, "subjects": ["Pioneers -- Idaho -- Biography", "Frontier and pioneer life -- Idaho", "Indians of North America -- Idaho", "Idaho -- History", "Snake River Valley (Wyo.-Wash.) -- Gold discoveries", "Walgamott, Charles S (Charles Shirley), 1857-1937"], "subjectsTop": ["Pioneers", "Frontier and pioneer life", "Indians of North America", "Idaho", "Snake River Valley (Wyo.-Wash.)", "Walgamott, Charles S (Charles Shirley), 1857-1937"], "genres": ["Autobiographies", "Biographies", "History"], "totalPages": 405, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 8.3, "difficulty": 5.55, "pageScore": 4.05, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9946888201851"}, {"title": "Journal of an exploring tour beyond the Rocky Mountains", "author": "Parker, Samuel, 1779-1866.", "year": 1990, "originalPub": null, "subjects": ["Overland journeys to the Pacific", "Indians of North America -- West (U.S.)", "Indians of North America -- Languages -- Glossaries, vocabularies, etc", "Northwest, Pacific -- Description and travel", "Hawaii -- Description and travel", "Parker, Samuel, 1779-1866 -- Travel"], "subjectsTop": ["Overland journeys to the Pacific", "Indians of North America", "Indians of North America", "Northwest, Pacific", "Hawaii", "Parker, Samuel, 1779-1866"], "genres": ["Glossaries, vocabularies"], "totalPages": 0, "hasIllustrations": true, "illTypes": ["illustrations", "map"], "illTypeCount": 2, "dimensions": 8.3, "difficulty": 2.0, "pageScore": 0.0, "illScore": 1, "illTypeScore": 1.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma996879601851"}, {"title": "The story of Idaho", "author": "Young, Virgil M., 1936-", "year": 1990, "originalPub": null, "subjects": ["Idaho -- Juvenile literature", "Idaho -- History -- Juvenile literature"], "subjectsTop": ["Idaho", "Idaho"], "genres": ["History", "Juvenile works"], "totalPages": 257, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 11.4, "difficulty": 4.07, "pageScore": 2.57, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9945917501851"}, {"title": "Building Idaho : an architectural history", "author": "Attebery, Jennifer Eastman, 1951-; Hart, Arthur A., writer of foreword. ; Fromm, Karla, designer. ; University of Idaho. Press, publisher. ; Thomson-Shore, Inc., printer, binder.", "year": 1991, "originalPub": null, "subjects": ["Architecture -- Idaho"], "subjectsTop": ["Architecture"], "genres": [], "totalPages": 176, "hasIllustrations": true, "illTypes": ["illustrations", "map", "plans"], "illTypeCount": 3, "dimensions": 11.4, "difficulty": 4.26, "pageScore": 1.76, "illScore": 1, "illTypeScore": 1.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9946972601851"}, {"title": "Idaho's Constitution : the tie that binds", "author": "Colson, Dennis C.", "year": 1991, "originalPub": null, "subjects": ["Constitutional history -- Idaho", "Constitutional conventions -- Idaho -- History", "Constitutional history -- Idaho"], "subjectsTop": ["Constitutional history", "Constitutional conventions", "Constitutional history"], "genres": ["History"], "totalPages": 299, "hasIllustrations": false, "illTypes": [], "illTypeCount": 0, "dimensions": 9.4, "difficulty": 2.99, "pageScore": 2.99, "illScore": 0, "illTypeScore": 0.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma996726801851"}, {"title": "Powers which we do not know : the gods and spirits of the Inuit", "author": "Merkur, Daniel. ; Lehman, Ellen J., 1944- donor.", "year": 1991, "originalPub": null, "subjects": ["Eskimos -- Religion", "Eskimo mythology", "Inuit gods", "Inuit -- Religion", "Inuit mythology"], "subjectsTop": ["Eskimos", "Eskimo mythology", "Inuit gods", "Inuit", "Inuit mythology"], "genres": [], "totalPages": 290, "hasIllustrations": false, "illTypes": [], "illTypeCount": 0, "dimensions": 9.1, "difficulty": 2.9, "pageScore": 2.9, "illScore": 0, "illTypeScore": 0.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9948787501851"}, {"title": "Lives of the saints in southeast Idaho : an introduction to Mormon pioneer life story writing", "author": "Swetnam, Susan H.", "year": 1991, "originalPub": null, "subjects": ["Latter Day Saints -- Idaho -- Social life and customs", "Latter Day Saints -- Idaho -- Biography -- History and criticism", "Latter Day Saints -- Material culture -- Idaho", "Frontier and pioneer life -- Idaho", "Idaho -- Social life and customs"], "subjectsTop": ["Latter Day Saints", "Latter Day Saints", "Latter Day Saints", "Frontier and pioneer life", "Idaho"], "genres": ["Criticism, interpretation, etc", "Biographies"], "totalPages": 193, "hasIllustrations": false, "illTypes": [], "illTypeCount": 0, "dimensions": 9.1, "difficulty": 1.93, "pageScore": 1.93, "illScore": 0, "illTypeScore": 0.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9948619201851"}, {"title": "What Thoreau said : Walden and the unsayable", "author": "Johnson, William C. (William Clark), 1945-", "year": 1991, "originalPub": null, "subjects": ["Reader-response criticism", "Thoreau, Henry David, 1817-1862 Walden", "Thoreau, Henry David, 1817-1862"], "subjectsTop": ["Reader-response criticism", "Thoreau, Henry David, 1817-1862 Walden", "Thoreau, Henry David, 1817-1862"], "genres": [], "totalPages": 189, "hasIllustrations": false, "illTypes": [], "illTypeCount": 0, "dimensions": 8.7, "difficulty": 1.89, "pageScore": 1.89, "illScore": 0, "illTypeScore": 0.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9947383401851"}, {"title": "Bonanza rich : lifestyles of the western mining entrepreneurs", "author": "Peterson, Richard H.", "year": 1991, "originalPub": null, "subjects": ["Mineral industries -- West (U.S.) -- History -- 19th century", "Industrialists -- West (U.S.) -- History -- 19th century", "Millionaires -- West (U.S.) -- History -- 19th century", "Wealth -- West (U.S.) -- History -- 19th century", "West (U.S.) -- Social conditions"], "subjectsTop": ["Mineral industries", "Industrialists", "Millionaires", "Wealth", "West (U.S.)"], "genres": ["History"], "totalPages": 206, "hasIllustrations": false, "illTypes": [], "illTypeCount": 0, "dimensions": 9.4, "difficulty": 2.06, "pageScore": 2.06, "illScore": 0, "illTypeScore": 0.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma996821201851"}, {"title": "Mandan social and ceremonial organization", "author": "Bowers, Alfred W.", "year": 1991, "originalPub": null, "subjects": ["Mandan Indians -- Rites and ceremonies", "Mandan Indians -- Social life and customs", "Mandan Indians -- Religion", "Social structure -- Great Plains"], "subjectsTop": ["Mandan Indians", "Mandan Indians", "Mandan Indians", "Social structure"], "genres": [], "totalPages": 423, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 9.1, "difficulty": 5.73, "pageScore": 4.23, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9948251801851"}, {"title": "Silver strike : the true story of silver mining in the Coeur d'Alenes", "author": "Stoll, William T. (William Tecumseh), 1859-1931.", "year": 1991, "originalPub": null, "subjects": ["Silver mines and mining -- Idaho -- Coeur d'Alene Region -- History", "Coeur d'Alene Region (Idaho) -- History", "Stoll, William T (William Tecumseh), 1859-1931"], "subjectsTop": ["Silver mines and mining", "Coeur d'Alene Region (Idaho)", "Stoll, William T (William Tecumseh), 1859-1931"], "genres": ["History"], "totalPages": 292, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 8.7, "difficulty": 4.42, "pageScore": 2.92, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma996772501851"}, {"title": "Ethics and agriculture : an anthology on current issues in world context", "author": "Blatz, Charles V.", "year": 1991, "originalPub": null, "subjects": ["Agriculture -- Moral and ethical aspects", "Agriculture"], "subjectsTop": ["Agriculture", "Agriculture"], "genres": [], "totalPages": 684, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 9.4, "difficulty": 8.34, "pageScore": 6.84, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9947844101851"}, {"title": "Myths of Idaho Indians", "author": "Walker, Deward E.", "year": 1991, "originalPub": 1980, "subjects": ["Indian mythology -- Idaho", "Indians of North America -- Idaho -- Folklore"], "subjectsTop": ["Indian mythology", "Indians of North America"], "genres": ["Folklore"], "totalPages": 204, "hasIllustrations": true, "illTypes": ["illustrations", "map"], "illTypeCount": 2, "dimensions": 8.7, "difficulty": 4.04, "pageScore": 2.04, "illScore": 1, "illTypeScore": 1.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9997828610001451"}, {"title": "Conflict & schism in Nez Perce\u0301 acculturation : a study of religion and politics", "author": "Walker, Deward E.", "year": 1991, "originalPub": 1985, "subjects": ["Nez Perce\u0301 Indians -- Social conditions", "Nez Perce\u0301 Indians -- Missions", "Acculturation -- Northwest, Pacific"], "subjectsTop": ["Nez Perce\u0301 Indians", "Nez Perce\u0301 Indians", "Acculturation"], "genres": [], "totalPages": 197, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 9.1, "difficulty": 3.47, "pageScore": 1.97, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9993602310001451"}, {"title": "Elegies and love songs", "author": "Young, Margaret Blair, 1955-", "year": 1992, "originalPub": null, "subjects": [], "subjectsTop": [], "genres": ["Fiction"], "totalPages": 134, "hasIllustrations": false, "illTypes": [], "illTypeCount": 0, "dimensions": 8.3, "difficulty": 1.34, "pageScore": 1.34, "illScore": 0, "illTypeScore": 0.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9949499001851"}, {"title": "Warcraft and the fragility of virtue : an essay in Aristotelian ethics", "author": "Davis, Grady Scott.", "year": 1992, "originalPub": null, "subjects": ["War (Philosophy)", "Just war doctrine", "Justice", "Virtue", "Pacifism", "Virtue", "Aristotle -- Ethics"], "subjectsTop": ["War (Philosophy)", "Just war doctrine", "Justice", "Virtue", "Pacifism", "Virtue", "Aristotle"], "genres": [], "totalPages": 205, "hasIllustrations": false, "illTypes": [], "illTypeCount": 0, "dimensions": 9.1, "difficulty": 2.05, "pageScore": 2.05, "illScore": 0, "illTypeScore": 0.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma996941601851"}, {"title": "Honey in the horn", "author": "Davis, H. L. (Harold Lenoir), 1896-1960.", "year": 1992, "originalPub": null, "subjects": ["Frontier and pioneer life -- Oregon -- Fiction", "Oregon -- Fiction"], "subjectsTop": ["Frontier and pioneer life", "Oregon"], "genres": ["Fiction", "Western stories", "Western fiction"], "totalPages": 399, "hasIllustrations": false, "illTypes": [], "illTypeCount": 0, "dimensions": 8.3, "difficulty": 3.99, "pageScore": 3.99, "illScore": 0, "illTypeScore": 0.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma996874101851"}, {"title": "Sheep may safely graze : a personal essay on tradition and a contemporary sheep ranch", "author": "Attebery, Louie W. (Louie Wayne), 1927-", "year": 1992, "originalPub": null, "subjects": ["Sheep ranches -- Idaho", "Sheep -- Idaho", "Ranch life -- Idaho", "Soulen family"], "subjectsTop": ["Sheep ranches", "Sheep", "Ranch life", "Soulen family"], "genres": [], "totalPages": 151, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 8.3, "difficulty": 3.01, "pageScore": 1.51, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma996990101851"}, {"title": "Fruit fields in my blood : Okie migrants in the West", "author": "Sonneman, Toby F., 1949- ; Steigmeyer, Rick, 1947-", "year": 1992, "originalPub": null, "subjects": ["Migrant agricultural laborers -- West (U.S.)", "Fruit trade -- West (U.S.) -- Employees"], "subjectsTop": ["Migrant agricultural laborers", "Fruit trade"], "genres": [], "totalPages": 222, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 10.6, "difficulty": 3.72, "pageScore": 2.22, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9949080201851"}, {"title": "Earthlight, wordfire : the work of Ivan Doig", "author": "Simpson, Elizabeth, 1951-", "year": 1992, "originalPub": null, "subjects": ["West (U.S.) -- In literature", "Doig, Ivan -- Criticism and interpretation"], "subjectsTop": ["West (U.S.)", "Doig, Ivan"], "genres": ["Criticism, interpretation, etc"], "totalPages": 224, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 9.1, "difficulty": 3.74, "pageScore": 2.24, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9949252001851"}, {"title": "Old West--new West : centennial essays", "author": "Meldrum, Barbara Howard.", "year": 1993, "originalPub": null, "subjects": ["American literature -- West (U.S.) -- History and criticism", "Authors, American -- Homes and haunts -- West (U.S.)", "Western stories -- History and criticism", "West (U.S.) -- Intellectual life", "West (U.S.) -- In literature"], "subjectsTop": ["American literature", "Authors, American", "Western stories", "West (U.S.)", "West (U.S.)"], "genres": ["Aufsatzsammlung", "Criticism, interpretation, etc"], "totalPages": 329, "hasIllustrations": false, "illTypes": [], "illTypeCount": 0, "dimensions": 9.1, "difficulty": 3.29, "pageScore": 3.29, "illScore": 0, "illTypeScore": 0.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9949821001851"}, {"title": "Mining engineers and the American West : the lace-boot brigade, 1849-1933", "author": "Spence, Clark C.", "year": 1993, "originalPub": null, "subjects": ["Mining engineering -- West (U.S.) -- History", "Mining engineers -- West (U.S.) -- History"], "subjectsTop": ["Mining engineering", "Mining engineers"], "genres": ["History"], "totalPages": 419, "hasIllustrations": true, "illTypes": ["illustrations", "maps"], "illTypeCount": 2, "dimensions": 9.1, "difficulty": 6.19, "pageScore": 4.19, "illScore": 1, "illTypeScore": 1.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9951116701851"}, {"title": "The Nez Perces since Lewis and Clark", "author": "McBeth, Kate C., 1832-1915.", "year": 1993, "originalPub": null, "subjects": ["Nez Perce\u0301 Indians -- Missions", "Missionaries -- Idaho -- Biography", "Presbyterians -- Missions -- Idaho", "Nez Perce\u0301 Indians -- History", "Nez Perce\u0301 Indians -- Social conditions", "McBeth, Kate C., 1832-1915"], "subjectsTop": ["Nez Perce\u0301 Indians", "Missionaries", "Presbyterians", "Nez Perce\u0301 Indians", "Nez Perce\u0301 Indians", "McBeth, Kate C., 1832-1915"], "genres": ["autobiographies (literary works)", "Biographies", "History", "Autobiographies"], "totalPages": 291, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 8.3, "difficulty": 4.41, "pageScore": 2.91, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9950134301851"}, {"title": "Beer and brewing in the inland Northwest, 1850 to 1950", "author": "Ronnenberg, Herman W., author.", "year": 1993, "originalPub": null, "subjects": ["Brewing industry -- Idaho -- History"], "subjectsTop": ["Brewing industry"], "genres": ["History"], "totalPages": 253, "hasIllustrations": true, "illTypes": ["illustrations", "maps"], "illTypeCount": 2, "dimensions": 9.4, "difficulty": 4.53, "pageScore": 2.53, "illScore": 1, "illTypeScore": 1.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9950201301851"}, {"title": "Mushrooms of Idaho and the Pacific Northwest", "author": "Tylutki, Edmund E.", "year": 1993, "originalPub": null, "subjects": ["Mushrooms -- Idaho -- Identification", "Mushrooms -- Northwest, Pacific -- Identification"], "subjectsTop": ["Mushrooms", "Mushrooms"], "genres": ["Field guides"], "totalPages": 0, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 8.3, "difficulty": 1.5, "pageScore": 0.0, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9994056020001451"}, {"title": "History of Idaho", "author": "Arrington, Leonard J.", "year": 1994, "originalPub": null, "subjects": ["Idaho -- History"], "subjectsTop": ["Idaho"], "genres": ["History"], "totalPages": 406, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 9.1, "difficulty": 5.56, "pageScore": 4.06, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma99167724540001451"}, {"title": "A shadow in the forest : Idaho's black bear", "author": "Beecham, John. ; Rohlman, Jeff. ; Idaho. Department of Fish and Game.", "year": 1994, "originalPub": null, "subjects": ["Black bear -- Idaho", "Bear populations -- Idaho"], "subjectsTop": ["Black bear", "Bear populations"], "genres": [], "totalPages": 263, "hasIllustrations": true, "illTypes": ["illustrations", "maps"], "illTypeCount": 2, "dimensions": 5.1, "difficulty": 4.63, "pageScore": 2.63, "illScore": 1, "illTypeScore": 1.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9952376001851"}, {"title": "Call of the Colorado", "author": "Webb, Roy.", "year": 1994, "originalPub": null, "subjects": ["Colorado River (Colo.-Mexico) -- Description and travel", "Colorado River (Colo.-Mexico) -- History", "Colorado River Region (Colo.-Mexico) -- Description and travel", "Colorado River Region (Colo.-Mexico) -- History"], "subjectsTop": ["Colorado River (Colo.-Mexico)", "Colorado River (Colo.-Mexico)", "Colorado River Region (Colo.-Mexico)", "Colorado River Region (Colo.-Mexico)"], "genres": ["History"], "totalPages": 187, "hasIllustrations": true, "illTypes": ["illustrations", "maps"], "illTypeCount": 2, "dimensions": 9.1, "difficulty": 3.87, "pageScore": 1.87, "illScore": 1, "illTypeScore": 1.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9951286301851"}, {"title": "A ram in the thicket : the story of a roaming homesteader family on the Mormon frontier", "author": "Robertson, Frank C. (Frank Chester), 1890-1969.", "year": 1994, "originalPub": null, "subjects": ["Authors, American -- 20th century -- Biography", "Latter Day Saint pioneers -- Idaho -- Moscow -- Biography", "Western stories -- Authorship", "Moscow (Idaho) -- Biography", "Robertson, Frank C (Frank Chester), 1890-1969"], "subjectsTop": ["Authors, American", "Latter Day Saint pioneers", "Western stories", "Moscow (Idaho)", "Robertson, Frank C (Frank Chester), 1890-1969"], "genres": ["Autobiographies", "collective biographies", "Biographies"], "totalPages": 361, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 8.3, "difficulty": 5.11, "pageScore": 3.61, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9952758001851"}, {"title": "Where the morning light's still blue : personal essays about Idaho", "author": "Studebaker, William. ; Ardinger, Richard.", "year": 1994, "originalPub": null, "subjects": ["Idaho -- Description and travel", "Idaho -- Social life and customs"], "subjectsTop": ["Idaho", "Idaho"], "genres": [], "totalPages": 213, "hasIllustrations": false, "illTypes": [], "illTypeCount": 0, "dimensions": 8.7, "difficulty": 2.13, "pageScore": 2.13, "illScore": 0, "illTypeScore": 0.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma997207901851"}, {"title": "The landscapes of Craters of the Moon National Monument : an evaluation of environmental changes", "author": "Wright, R. Gerald. ; Bunting, Stephen C.", "year": 1994, "originalPub": null, "subjects": ["Vegetation dynamics -- Idaho -- Craters of the Moon National Monument", "Plant ecology -- Idaho -- Craters of the Moon National Monument", "Ecology -- Idaho -- Craters of the Moon National Monument", "Natural history -- Idaho -- Craters of the Moon National Monument", "Vegetation dynamics -- Idaho -- Craters of the Moon National Monument -- Pictorial works", "Plant ecology -- Idaho -- Craters of the Moon National Monument -- Pictorial works", "Ecology -- Idaho -- Craters of the Moon National Monument -- Pictorial works", "Natural history -- Idaho -- Craters of the Moon National Monument -- Pictorial works", "Craters of the Moon National Monument (Idaho)", "Craters of the Moon National Monument (Idaho) -- Pictorial works"], "subjectsTop": ["Vegetation dynamics", "Plant ecology", "Ecology", "Natural history", "Vegetation dynamics", "Plant ecology", "Ecology", "Natural history", "Craters of the Moon National Monument (Idaho)", "Craters of the Moon National Monument (Idaho)"], "genres": ["Illustrated works"], "totalPages": 113, "hasIllustrations": true, "illTypes": ["illustrations", "maps"], "illTypeCount": 2, "dimensions": 9.1, "difficulty": 3.13, "pageScore": 1.13, "illScore": 1, "illTypeScore": 1.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9951263901851"}, {"title": "Coxey's army : an American odyssey", "author": "Schwantes, Carlos A., 1945-", "year": 1994, "originalPub": null, "subjects": ["Working class -- United States -- History", "Unemployed -- United States -- History", "Coxey, Jacob Sechler, 1854-1951"], "subjectsTop": ["Working class", "Unemployed", "Coxey, Jacob Sechler, 1854-1951"], "genres": ["History"], "totalPages": 333, "hasIllustrations": true, "illTypes": ["illustrations", "map"], "illTypeCount": 2, "dimensions": 8.7, "difficulty": 5.33, "pageScore": 3.33, "illScore": 1, "illTypeScore": 1.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9952365501851"}, {"title": "Conservation and management of neotropical migrant landbirds in the Northern Rockies and Great Plains", "author": "Dobkin, David S.", "year": 1994, "originalPub": null, "subjects": ["Birds -- Migration -- Rocky Mountains", "Birds -- Migration -- Great Plains", "Birds -- Conservation -- Rocky Mountains", "Birds -- Conservation -- Great Plains", "Bird populations -- Rocky Mountains", "Bird populations -- Great Plains", "Conservation of natural resources"], "subjectsTop": ["Birds", "Birds", "Birds", "Birds", "Bird populations", "Bird populations", "Conservation of natural resources"], "genres": [], "totalPages": 233, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 11.0, "difficulty": 3.83, "pageScore": 2.33, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9985354201851"}, {"title": "Radical heritage : labor, socialism, and reform in Washington and British Columbia, 1885-1917", "author": "Schwantes, Carlos A., 1945-", "year": 1994, "originalPub": null, "subjects": ["Labor unions -- Political activity -- Washington (State) -- History", "Labor unions -- Political activity -- British Columbia -- History", "Socialism -- Washington (State)", "Socialism -- British Columbia"], "subjectsTop": ["Labor unions", "Labor unions", "Socialism", "Socialism"], "genres": ["History"], "totalPages": 306, "hasIllustrations": true, "illTypes": ["maps"], "illTypeCount": 1, "dimensions": 9.1, "difficulty": 4.56, "pageScore": 3.06, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9953195601851"}, {"title": "Encounters with a distant land : exploration and the great Northwest", "author": "Schwantes, Carlos A., 1945-; Pickett, Evelyne.", "year": 1994, "originalPub": null, "subjects": ["Northwest, Pacific -- Discovery and exploration"], "subjectsTop": ["Northwest, Pacific"], "genres": [], "totalPages": 232, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 9.8, "difficulty": 3.82, "pageScore": 2.32, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9951968301851"}, {"title": "Smokechaser", "author": "Yahr, Warren, 1928-", "year": 1995, "originalPub": null, "subjects": ["Fire lookouts -- Idaho -- Clearwater National Forest -- Biography", "Fire lookout stations -- Idaho -- Clearwater National Forest -- History", "Clearwater National Forest (Idaho) -- History", "Yahr, Warren, 1928-"], "subjectsTop": ["Fire lookouts", "Fire lookout stations", "Clearwater National Forest (Idaho)", "Yahr, Warren, 1928-"], "genres": ["Autobiographies", "Biographies", "History"], "totalPages": 269, "hasIllustrations": true, "illTypes": ["illustrations", "map"], "illTypeCount": 2, "dimensions": 9.1, "difficulty": 4.69, "pageScore": 2.69, "illScore": 1, "illTypeScore": 1.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9953487401851"}, {"title": "British investments and the American mining frontier, 1860-1901", "author": "Spence, Clark C.", "year": 1995, "originalPub": null, "subjects": ["Mineral industries -- West (U.S.) -- Foreign ownership -- History -- 19th century", "Corporations, British -- West (U.S.) -- History -- 19th century", "Investments, British -- West (U.S.) -- History -- 19th century"], "subjectsTop": ["Mineral industries", "Corporations, British", "Investments, British"], "genres": ["History"], "totalPages": 297, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 9.1, "difficulty": 4.47, "pageScore": 2.97, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9952635901851"}, {"title": "Wild trees of Idaho", "author": "Johnson, Frederic D. (Frederic Duane), 1925-2014.", "year": 1995, "originalPub": null, "subjects": ["Trees -- Idaho -- Identification", "Leaves -- Idaho -- Identification", "Trees -- Idaho -- Pictorial works", "Leaves -- Idaho -- Pictorial works"], "subjectsTop": ["Trees", "Leaves", "Trees", "Leaves"], "genres": ["Field guides", "Illustrated works"], "totalPages": 255, "hasIllustrations": true, "illTypes": ["illustrations", "maps"], "illTypeCount": 2, "dimensions": 10.2, "difficulty": 4.55, "pageScore": 2.55, "illScore": 1, "illTypeScore": 1.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9953687801851"}, {"title": "Fair barbarian", "author": "Burnett, Frances Hodgson, 1849-1924. ; Cairns Collection of American Women Writers.", "year": 1995, "originalPub": 1880, "subjects": ["Americans -- England -- Fiction", "Young women -- Fiction", "Villages -- Fiction", "England -- Fiction"], "subjectsTop": ["Americans", "Young women", "Villages", "England"], "genres": ["Love stories", "Bildungsromans", "Romance fiction", "Fiction"], "totalPages": 0, "hasIllustrations": false, "illTypes": [], "illTypeCount": 0, "dimensions": 7.1, "difficulty": 0.0, "pageScore": 0.0, "illScore": 0, "illTypeScore": 0.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9975269201851"}, {"title": "Rationality and ethics in agriculture", "author": "Lehman, Hugh.", "year": 1995, "originalPub": null, "subjects": ["Agriculture -- Moral and ethical aspects", "Rationalism"], "subjectsTop": ["Agriculture", "Rationalism"], "genres": [], "totalPages": 239, "hasIllustrations": false, "illTypes": [], "illTypeCount": 0, "dimensions": 9.1, "difficulty": 2.39, "pageScore": 2.39, "illScore": 0, "illTypeScore": 0.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma997360501851"}, {"title": "Dire Wolf and other fierce and fanciful works by sculptor George Roberts", "author": "Roberts, George, 1927- ; Jacobson, Robert, 1926-2021.", "year": 1995, "originalPub": null, "subjects": ["Roberts, George, 1927- -- Themes, motives -- Catalogs"], "subjectsTop": ["Roberts, George, 1927-"], "genres": ["Catalogs"], "totalPages": 150, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 9.8, "difficulty": 3.0, "pageScore": 1.5, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9953106501851"}, {"title": "The adventures of \"Indiana\" Hannebaum", "author": "Hannebaum, Harold W., 1910-", "year": 1995, "originalPub": null, "subjects": ["Inventors -- United States -- Biography", "Hannebaum, Harold W., 1910-"], "subjectsTop": ["Inventors", "Hannebaum, Harold W., 1910-"], "genres": ["Autobiographies", "Biographies"], "totalPages": 0, "hasIllustrations": false, "illTypes": [], "illTypeCount": 0, "dimensions": 9.1, "difficulty": 0.0, "pageScore": 0.0, "illScore": 0, "illTypeScore": 0.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma997381601851"}, {"title": "Parallel expeditions : Charles Darwin and the art of John Steinbeck", "author": "Railsback, Brian E.", "year": 1995, "originalPub": null, "subjects": ["Literature and science -- United States -- History -- 20th century", "American fiction -- English influences", "Evolution (Biology) in literature", "Social Darwinism in literature", "Evolution in literature", "Biology in literature", "Steinbeck, John, 1902-1968 -- Knowledge and learning", "Darwin, Charles, 1809-1882 -- Influence"], "subjectsTop": ["Literature and science", "American fiction", "Evolution (Biology) in literature", "Social Darwinism in literature", "Evolution in literature", "Biology in literature", "Steinbeck, John, 1902-1968", "Darwin, Charles, 1809-1882"], "genres": ["History"], "totalPages": 168, "hasIllustrations": false, "illTypes": [], "illTypeCount": 0, "dimensions": 9.4, "difficulty": 1.68, "pageScore": 1.68, "illScore": 0, "illTypeScore": 0.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9953170001851"}, {"title": "The Arams of Idaho : pioneers of Camas Prairie and Joseph Plains", "author": "Youngdahl, Kristi M., 1948-", "year": 1995, "originalPub": null, "subjects": ["Pioneers -- Idaho -- Joseph Plains -- Biography", "Frontier and pioneer life -- Idaho -- Joseph Plains", "Joseph Plains (Idaho) -- Biography", "Camas Prairie (Idaho) -- History", "Aram family"], "subjectsTop": ["Pioneers", "Frontier and pioneer life", "Joseph Plains (Idaho)", "Camas Prairie (Idaho)", "Aram family"], "genres": ["collective biographies", "History", "Biographies"], "totalPages": 230, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 9.1, "difficulty": 3.8, "pageScore": 2.3, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9953613501851"}, {"title": "The Sunshine Mine disaster", "author": "Brock, James, 1958-", "year": 1995, "originalPub": null, "subjects": ["Sunshine Mine Disaster, Kellogg, Idaho, 1972 -- Poetry", "Mines and mineral resources -- Poetry", "Silver mines and mining -- Poetry", "Mine accidents -- Poetry", "Silver miners -- Poetry", "Kellogg (Idaho) -- Poetry"], "subjectsTop": ["Sunshine Mine Disaster, Kellogg, Idaho, 1972", "Mines and mineral resources", "Silver mines and mining", "Mine accidents", "Silver miners", "Kellogg (Idaho)"], "genres": ["poetry"], "totalPages": 74, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 9.1, "difficulty": 2.24, "pageScore": 0.74, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9953593101851"}, {"title": "The Bannock of Idaho", "author": "Madsen, Brigham D.", "year": 1996, "originalPub": null, "subjects": ["Bannock Indians -- History"], "subjectsTop": ["Bannock Indians"], "genres": ["History"], "totalPages": 382, "hasIllustrations": true, "illTypes": ["illustrations", "map"], "illTypeCount": 2, "dimensions": 8.3, "difficulty": 5.82, "pageScore": 3.82, "illScore": 1, "illTypeScore": 1.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9954990801851"}, {"title": "Monkey mountain madness", "author": "Phillips, Jeanne, 1926-", "year": 1996, "originalPub": null, "subjects": ["Montana -- Biography", "Phillips, Jeanne, 1926-"], "subjectsTop": ["Montana", "Phillips, Jeanne, 1926-"], "genres": ["Autobiographies", "Biographies"], "totalPages": 168, "hasIllustrations": false, "illTypes": [], "illTypeCount": 0, "dimensions": 7.5, "difficulty": 1.68, "pageScore": 1.68, "illScore": 0, "illTypeScore": 0.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9954367501851"}, {"title": "Nez Perce women in transition, 1877-1990", "author": "James, Caroline.", "year": 1996, "originalPub": null, "subjects": ["Nez Perce\u0301 women -- History", "Nez Perce\u0301 women -- Social conditions", "Nez Perce\u0301 women -- Politics and government"], "subjectsTop": ["Nez Perce\u0301 women", "Nez Perce\u0301 women", "Nez Perce\u0301 women"], "genres": ["History"], "totalPages": 274, "hasIllustrations": true, "illTypes": ["illustrations", "maps"], "illTypeCount": 2, "dimensions": 10.6, "difficulty": 4.74, "pageScore": 2.74, "illScore": 1, "illTypeScore": 1.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9954147501851"}, {"title": "Work as art : Idaho logging as an aesthetic moment", "author": "James-Duguid, Charlene, 1942-", "year": 1996, "originalPub": null, "subjects": ["Logging -- Idaho -- Orofino", "Loggers -- Idaho -- Orofino -- Biography", "Orofino (Idaho) -- Biography", "Orofino (Idaho) -- Social life and customs"], "subjectsTop": ["Logging", "Loggers", "Orofino (Idaho)", "Orofino (Idaho)"], "genres": ["collective biographies", "Biographies"], "totalPages": 148, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 9.4, "difficulty": 2.98, "pageScore": 1.48, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9954128701851"}, {"title": "A pioneer of American folklore : Karl Knortz and his collections", "author": "Schamschula, Eleonore.", "year": 1996, "originalPub": null, "subjects": ["Folklore -- United States", "Knortz, Karl, 1841-1918", "Folklorists -- United States", "Folklorists -- Germany"], "subjectsTop": ["Folklore", "Knortz, Karl, 1841-1918", "Folklorists", "Folklorists"], "genres": [], "totalPages": 326, "hasIllustrations": false, "illTypes": [], "illTypeCount": 0, "dimensions": 9.4, "difficulty": 3.26, "pageScore": 3.26, "illScore": 0, "illTypeScore": 0.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma997497001851"}, {"title": "Loaded fictions : social critique in the twentieth-century western", "author": "Emmert, Scott, 1962-", "year": 1996, "originalPub": null, "subjects": ["Western stories -- History and criticism", "American fiction -- 20th century -- History and criticism", "American fiction -- West (U.S.) -- History and criticism", "Literature and society -- West (U.S.)", "Social problems in literature"], "subjectsTop": ["Western stories", "American fiction", "American fiction", "Literature and society", "Social problems in literature"], "genres": ["Criticism, interpretation, etc"], "totalPages": 212, "hasIllustrations": false, "illTypes": [], "illTypeCount": 0, "dimensions": 9.4, "difficulty": 2.12, "pageScore": 2.12, "illScore": 0, "illTypeScore": 0.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9954787501851"}, {"title": "So Incredibly Idaho! : seven landscapes that define the gem state", "author": "Schwantes, Carlos A., 1945-", "year": 1996, "originalPub": null, "subjects": ["Landscapes -- Idaho -- Pictorial works", "Landscape photography -- Idaho", "Idaho -- Pictorial works"], "subjectsTop": ["Landscapes", "Landscape photography", "Idaho"], "genres": ["Nonfiction", "illustrated books", "Illustrated works"], "totalPages": 167, "hasIllustrations": true, "illTypes": ["color illustrations", "color maps"], "illTypeCount": 2, "dimensions": 9.4, "difficulty": 3.67, "pageScore": 1.67, "illScore": 1, "illTypeScore": 1.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9954292201851"}, {"title": "Hidatsa suprasegmentals : a phonological analysis of a Siouan Native North American language", "author": "Bowers, Norman A., 1949-", "year": 1996, "originalPub": null, "subjects": ["Hidatsa language -- Phonology", "Hidatsa language -- Prosodic analysis", "Hidatsa language -- Grammar, Comparative"], "subjectsTop": ["Hidatsa language", "Hidatsa language", "Hidatsa language"], "genres": [], "totalPages": 265, "hasIllustrations": true, "illTypes": ["illustrations", "map"], "illTypeCount": 2, "dimensions": 11.4, "difficulty": 4.65, "pageScore": 2.65, "illScore": 1, "illTypeScore": 1.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9954293601851"}, {"title": "Wise economies : brevity and storytelling in American short stories", "author": "Curnutt, Kirk, 1964-", "year": 1997, "originalPub": null, "subjects": ["Short stories, American -- History and criticism", "Narration (Rhetoric)"], "subjectsTop": ["Short stories, American", "Narration (Rhetoric)"], "genres": ["Criticism, interpretation, etc"], "totalPages": 327, "hasIllustrations": false, "illTypes": [], "illTypeCount": 0, "dimensions": 9.4, "difficulty": 3.27, "pageScore": 3.27, "illScore": 0, "illTypeScore": 0.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9955740601851"}, {"title": "The world of David Wagoner", "author": "McFarland, Ronald E.", "year": 1997, "originalPub": null, "subjects": ["Northwestern States -- In literature", "Middle West -- In literature", "Wagoner, David -- Criticism and interpretation"], "subjectsTop": ["Northwestern States", "Middle West", "Wagoner, David"], "genres": ["Criticism, interpretation, etc"], "totalPages": 222, "hasIllustrations": false, "illTypes": [], "illTypeCount": 0, "dimensions": 9.4, "difficulty": 2.22, "pageScore": 2.22, "illScore": 0, "illTypeScore": 0.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma997641801851"}, {"title": "Glen Canyon and the San Juan country", "author": "Topping, Gary, 1941-", "year": 1997, "originalPub": null, "subjects": ["Glen Canyon (Utah and Ariz.) -- History", "San Juan River Valley (Colo.-Utah) -- History"], "subjectsTop": ["Glen Canyon (Utah and Ariz.)", "San Juan River Valley (Colo.-Utah)"], "genres": ["History"], "totalPages": 419, "hasIllustrations": true, "illTypes": ["illustrations", "map"], "illTypeCount": 2, "dimensions": 9.4, "difficulty": 6.19, "pageScore": 4.19, "illScore": 1, "illTypeScore": 1.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma997740401851"}, {"title": "Mavericks : the lives and battles of Montana's political legends", "author": "Morrison, John, 1961- ; Morrison, Catherine Wright, 1962-", "year": 1997, "originalPub": null, "subjects": ["Politicians -- Montana -- Biography", "Montana -- Politics and government", "Montana -- Biography"], "subjectsTop": ["Politicians", "Montana", "Montana"], "genres": ["collective biographies", "Biographies"], "totalPages": 340, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 9.4, "difficulty": 4.9, "pageScore": 3.4, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma997785901851"}, {"title": "Cowboy memories of Montana", "author": "Perrault, Mark, 1915- author.", "year": 1997, "originalPub": null, "subjects": ["Ranch life -- Montana -- Madison County -- History -- 20th century", "Cowboys -- Montana -- Madison County -- Biography", "River Ranch (Mont.)", "Madison County (Mont.) -- Social life and customs", "Perrault, Mark, 1915-"], "subjectsTop": ["Ranch life", "Cowboys", "River Ranch (Mont.)", "Madison County (Mont.)", "Perrault, Mark, 1915-"], "genres": ["collective biographies", "History", "Biographies"], "totalPages": 199, "hasIllustrations": true, "illTypes": ["illustrations", "map"], "illTypeCount": 2, "dimensions": 9.4, "difficulty": 3.99, "pageScore": 1.99, "illScore": 1, "illTypeScore": 1.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9955897401851"}, {"title": "The Milwaukee Road revisited", "author": "Johnson, Stanley W., 1928-", "year": 1997, "originalPub": null, "subjects": ["Railroads -- Northwest, Pacific", "Chicago, Milwaukee, St. Paul, and Pacific Railroad Company"], "subjectsTop": ["Railroads", "Chicago, Milwaukee, St. Paul, and Pacific Railroad Company"], "genres": [], "totalPages": 239, "hasIllustrations": true, "illTypes": ["illustrations", "map"], "illTypeCount": 2, "dimensions": 9.4, "difficulty": 4.39, "pageScore": 2.39, "illScore": 1, "illTypeScore": 1.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma997625201851"}, {"title": "The great poem of the Earth : a study of the poetry of Thomas Hornsby Ferril", "author": "Elkins, Andrew, 1950-", "year": 1997, "originalPub": null, "subjects": ["Nature in literature", "West (U.S.) -- In literature", "Ferril, Thomas Hornsby, 1896-1988 -- Criticism and interpretation"], "subjectsTop": ["Nature in literature", "West (U.S.)", "Ferril, Thomas Hornsby, 1896-1988"], "genres": ["Criticism, interpretation, etc"], "totalPages": 230, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 9.4, "difficulty": 3.8, "pageScore": 2.3, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9955091301851"}, {"title": "Travelers in an antique land", "author": "Studebaker, William. ; Hepworth, Russell, 1949-", "year": 1997, "originalPub": null, "subjects": ["West (U.S.) -- Poetry", "West (U.S.) -- Pictorial works"], "subjectsTop": ["West (U.S.)", "West (U.S.)"], "genres": ["poetry", "Pictorial works", "Poetry"], "totalPages": 89, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 10.2, "difficulty": 2.39, "pageScore": 0.89, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma997739701851"}, {"title": "Fire, faults & floods : a road & trail guide exploring the origins of the Columbia River basin", "author": "Mueller, Marge. ; Mueller, Ted.", "year": 1997, "originalPub": null, "subjects": ["Geology -- Columbia River Watershed -- Guidebooks", "Volcanism -- Columbia River Watershed -- Guidebooks", "Columbia River Watershed -- Guidebooks"], "subjectsTop": ["Geology", "Volcanism", "Columbia River Watershed"], "genres": ["Guidebooks"], "totalPages": 288, "hasIllustrations": true, "illTypes": ["illustrations", "maps"], "illTypeCount": 2, "dimensions": 8.7, "difficulty": 4.88, "pageScore": 2.88, "illScore": 1, "illTypeScore": 1.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9964358301851"}, {"title": "One winter in the wilderness", "author": "Peek, Pat Cary, 1937-", "year": 1998, "originalPub": null, "subjects": ["Natural history -- Idaho -- Frank Church-River of No Return Wilderness -- Anecdotes", "Peek, Pat Cary, 1937- -- Diaries"], "subjectsTop": ["Natural history", "Peek, Pat Cary, 1937-"], "genres": ["Anecdotes", "Diaries"], "totalPages": 281, "hasIllustrations": true, "illTypes": ["illustrations", "map"], "illTypeCount": 2, "dimensions": 9.4, "difficulty": 4.81, "pageScore": 2.81, "illScore": 1, "illTypeScore": 1.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma998075601851"}, {"title": "Rock burst", "author": "Russell, Bert, 1909-1997. ; Russell, Marie, 1921-", "year": 1998, "originalPub": null, "subjects": ["Miners -- Idaho -- Coeur d'Alene River Region -- Interviews", "Miners -- Idaho -- Coeur d'Alene River Region -- Social life and customs", "Miners -- Idaho -- Coeur d'Alene River region -- Social conditions", "Mines and mineral resources -- Idaho -- Coeur d'Alene River Region -- History -- 20th century", "Coeur d'Alene River Region (Idaho) -- Biography", "Coeur d'Alene River Region (Idaho) -- Social life and customs"], "subjectsTop": ["Miners", "Miners", "Miners", "Mines and mineral resources", "Coeur d'Alene River Region (Idaho)", "Coeur d'Alene River Region (Idaho)"], "genres": ["Biographies", "History", "Interviews"], "totalPages": 425, "hasIllustrations": true, "illTypes": ["illustrations", "map"], "illTypeCount": 2, "dimensions": 9.4, "difficulty": 6.25, "pageScore": 4.25, "illScore": 1, "illTypeScore": 1.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma997904801851"}, {"title": "Raising the roof : creating the Kibbie Dome at the University of Idaho", "author": "Johnson, Peter, 1932-", "year": 1998, "originalPub": null, "subjects": ["Roofs, Shell -- Idaho -- Moscow -- Design and construction", "Wooden-frame buildings -- Idaho -- Moscow -- Design and construction", "Moscow (Idaho) -- Buildings, structures, etc", "William H. Kibbie-ASUI Activity Center Dome (Moscow, Idaho) -- Design and construction", "University of Idaho -- Buildings"], "subjectsTop": ["Roofs, Shell", "Wooden-frame buildings", "Moscow (Idaho)", "William H. Kibbie-ASUI Activity Center Dome (Moscow, Idaho)", "University of Idaho"], "genres": [], "totalPages": 61, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 9.8, "difficulty": 2.11, "pageScore": 0.61, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9956576501851"}, {"title": "Tricky tribal discourse : the poetry, short stories, and Fus Fixico letters of Creek writer Alex Posey", "author": "Kosmider, Alexia Maria.", "year": 1998, "originalPub": null, "subjects": ["American literature -- Indian authors -- History and criticism", "American wit and humor -- History and criticism", "Indians of North America -- Intellectual life", "Frontier and pioneer life in literature", "Creek Indians -- Civilization", "Discourse analysis, Literary", "Tricksters in literature", "Indians in literature", "Indian Territory -- In literature", "West (U.S.) -- In literature", "Posey, Alexander Lawrence, 1873-1908 -- Criticism and interpretation", "Posey, Alexander Lawrence, 1873-1908 -- Influence"], "subjectsTop": ["American literature", "American wit and humor", "Indians of North America", "Frontier and pioneer life in literature", "Creek Indians", "Discourse analysis, Literary", "Tricksters in literature", "Indians in literature", "Indian Territory", "West (U.S.)", "Posey, Alexander Lawrence, 1873-1908", "Posey, Alexander Lawrence, 1873-1908"], "genres": ["Criticism, interpretation, etc"], "totalPages": 116, "hasIllustrations": false, "illTypes": [], "illTypeCount": 0, "dimensions": 9.4, "difficulty": 1.16, "pageScore": 1.16, "illScore": 0, "illTypeScore": 0.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9955928401851"}, {"title": "Green cultural studies : nature in film, novel, and theory", "author": "Hochman, Jhan, 1952-", "year": 1998, "originalPub": null, "subjects": ["Nature in motion pictures", "Nature in literature", "English literature -- 20th century -- History and criticism"], "subjectsTop": ["Nature in motion pictures", "Nature in literature", "English literature"], "genres": ["Criticism, interpretation, etc"], "totalPages": 234, "hasIllustrations": false, "illTypes": [], "illTypeCount": 0, "dimensions": 9.4, "difficulty": 2.34, "pageScore": 2.34, "illScore": 0, "illTypeScore": 0.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9956944401851"}, {"title": "The automobile gold rushes and Depression era mining", "author": "Miller, Charles Wallace.", "year": 1998, "originalPub": null, "subjects": ["Gold industry -- United States -- History -- 20th century", "Gold mines and mining -- United States -- History -- 20th century", "Bimetallism -- United States -- History -- 20th century", "Gold standard -- History -- 20th century", "Depressions -- 1929 -- United States"], "subjectsTop": ["Gold industry", "Gold mines and mining", "Bimetallism", "Gold standard", "Depressions"], "genres": ["History"], "totalPages": 200, "hasIllustrations": true, "illTypes": ["illustrations", "maps"], "illTypeCount": 2, "dimensions": 9.4, "difficulty": 4.0, "pageScore": 2.0, "illScore": 1, "illTypeScore": 1.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9956288301851"}, {"title": "Building with logs : western log construction in context", "author": "Attebery, Jennifer Eastman, 1951-", "year": 1998, "originalPub": null, "subjects": ["Log buildings -- West (U.S.) -- Design and construction", "Building, Wooden -- West (U.S.)"], "subjectsTop": ["Log buildings", "Building, Wooden"], "genres": [], "totalPages": 163, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 9.4, "difficulty": 3.13, "pageScore": 1.63, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9960700201851"}, {"title": "Governor Smylie remembers", "author": "Smylie, Robert E. (Robert Eben), 1914-2004.", "year": 1998, "originalPub": null, "subjects": ["Governors -- Idaho -- Biography", "Idaho -- Politics and government", "Smylie, Robert E (Robert Eben), 1914-2004"], "subjectsTop": ["Governors", "Idaho", "Smylie, Robert E (Robert Eben), 1914-2004"], "genres": ["Autobiographies", "collective biographies", "Biographies"], "totalPages": 249, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 9.4, "difficulty": 3.99, "pageScore": 2.49, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma997946701851"}, {"title": "Through the Yellowstone Park on horseback", "author": "Wingate, George Wood, 1840-1928.", "year": 1999, "originalPub": null, "subjects": ["Packhorse camping -- Yellowstone National Park", "Yellowstone National Park -- Description and travel", "Yellowstone National Park -- History", "Wingate, George Wood, 1840-1928 -- Travel -- Yellowstone National Park"], "subjectsTop": ["Packhorse camping", "Yellowstone National Park", "Yellowstone National Park", "Wingate, George Wood, 1840-1928"], "genres": ["History"], "totalPages": 250, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 7.5, "difficulty": 4.0, "pageScore": 2.5, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma998400301851"}, {"title": "Chief Pocatello ; Chief Pocatello, the \"White Plume\"", "author": "Madsen, Brigham D.", "year": 1999, "originalPub": null, "subjects": ["Shoshoni Indians -- Biography", "Shoshoni Indians -- History", "Pocatello, Chief"], "subjectsTop": ["Shoshoni Indians", "Shoshoni Indians", "Pocatello, Chief"], "genres": ["History", "Biographies"], "totalPages": 142, "hasIllustrations": true, "illTypes": ["illustrations", "maps"], "illTypeCount": 2, "dimensions": 8.7, "difficulty": 3.42, "pageScore": 1.42, "illScore": 1, "illTypeScore": 1.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9958610901851"}, {"title": "At the Hemingways : with fifty years of correspondence between Ernest and Marcelline Hemingway", "author": "Sanford, Marcelline Hemingway, 1898-1963. ; Hemingway, Ernest, 1899-1961.", "year": 1999, "originalPub": null, "subjects": ["Authors, American -- 20th century -- Family relationships", "Siblings -- United States", "Hemingway, Ernest, 1899-1961 -- Family", "Sanford, Marcelline Hemingway, 1898-1963 -- Correspondence", "Hemingway, Ernest, 1899-1961 -- Correspondence", "Sanford, Marcelline Hemingway, 1898-1963", "Hemingway family"], "subjectsTop": ["Authors, American", "Siblings", "Hemingway, Ernest, 1899-1961", "Sanford, Marcelline Hemingway, 1898-1963", "Hemingway, Ernest, 1899-1961", "Sanford, Marcelline Hemingway, 1898-1963", "Hemingway family"], "genres": ["Biographies", "letters (correspondence)", "personal correspondence", "Personal correspondence"], "totalPages": 411, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 8.3, "difficulty": 5.61, "pageScore": 4.11, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma99663601851"}, {"title": "For Wood River or bust : Idaho's silver boom of the 1880s", "author": "Spence, Clark C.", "year": 1999, "originalPub": null, "subjects": ["Frontier and pioneer life -- Idaho -- Big Wood River -- Juvenile literature", "Silver mines and mining -- Idaho -- Big Wood River -- History -- 19th century -- Juvenile literature", "Big Wood River (Idaho) -- History -- Juvenile literature"], "subjectsTop": ["Frontier and pioneer life", "Silver mines and mining", "Big Wood River (Idaho)"], "genres": ["History", "Juvenile works"], "totalPages": 271, "hasIllustrations": true, "illTypes": ["illustrations", "map"], "illTypeCount": 2, "dimensions": 9.4, "difficulty": 4.71, "pageScore": 2.71, "illScore": 1, "illTypeScore": 1.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma998319801851"}, {"title": "Hemingway and the natural world", "author": "Fleming, Robert E. (Robert Edward), 1936-", "year": 1999, "originalPub": null, "subjects": ["Nature in literature", "Hemingway, Ernest, 1899-1961 -- Knowledge and learning"], "subjectsTop": ["Nature in literature", "Hemingway, Ernest, 1899-1961"], "genres": ["Aufsatzsammlung"], "totalPages": 278, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 9.4, "difficulty": 4.28, "pageScore": 2.78, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9962992601851"}, {"title": "Women on the run", "author": "Hale, Janet Campbell.", "year": 1999, "originalPub": null, "subjects": ["Indians of North America -- Fiction", "Women -- United States -- Fiction", "Indian women -- Fiction", "United States -- Social life and customs -- 20th century -- Fiction"], "subjectsTop": ["Indians of North America", "Women", "Indian women", "United States"], "genres": ["Fiction"], "totalPages": 178, "hasIllustrations": false, "illTypes": [], "illTypeCount": 0, "dimensions": 8.7, "difficulty": 1.78, "pageScore": 1.78, "illScore": 0, "illTypeScore": 0.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma99681001851"}, {"title": "Mountain man : a novel of male and female in the early American West", "author": "Fisher, Vardis, 1895-1968.", "year": 2000, "originalPub": null, "subjects": ["Trappers -- Fiction", "Women pioneers -- Fiction", "Mountain life -- Fiction", "Indian women -- Fiction", "Rocky Mountains -- Fiction"], "subjectsTop": ["Trappers", "Women pioneers", "Mountain life", "Indian women", "Rocky Mountains"], "genres": ["Fiction", "Western stories", "Love stories", "Domestic fiction"], "totalPages": 356, "hasIllustrations": true, "illTypes": ["map"], "illTypeCount": 1, "dimensions": 7.1, "difficulty": 5.06, "pageScore": 3.56, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9961429801851"}, {"title": "Minnesota diary, 1942-46", "author": "Lewis, Sinclair, 1885-1951. ; Killough, George.", "year": 2000, "originalPub": null, "subjects": ["Novelists, American -- 20th century -- Diaries", "Minnesota -- Intellectual life -- 20th century", "Lewis, Sinclair, 1885-1951 -- Diaries", "Lewis, Sinclair, 1885-1951 -- Homes and haunts -- Minnesota"], "subjectsTop": ["Novelists, American", "Minnesota", "Lewis, Sinclair, 1885-1951", "Lewis, Sinclair, 1885-1951"], "genres": ["Autobiographies", "diaries", "Diaries"], "totalPages": 304, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 9.4, "difficulty": 4.54, "pageScore": 3.04, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9961430401851"}, {"title": "Columbia River : gateway to the West", "author": "Schwantes, Carlos A., 1945-", "year": 2000, "originalPub": null, "subjects": ["Columbia River -- History", "Columbia River -- Description and travel", "Columbia River -- Pictorial works"], "subjectsTop": ["Columbia River", "Columbia River", "Columbia River"], "genres": ["illustrated books", "History", "Illustrated works"], "totalPages": 126, "hasIllustrations": true, "illTypes": ["illustrations", "map"], "illTypeCount": 2, "dimensions": 9.8, "difficulty": 3.26, "pageScore": 1.26, "illScore": 1, "illTypeScore": 1.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9961338001851"}, {"title": "Rediscovering Vardis Fisher : centennial essays", "author": "Flora, Joseph M.", "year": 2000, "originalPub": null, "subjects": ["West (U.S.) -- In literature", "Fisher, Vardis, 1895-1968 -- Criticism and interpretation"], "subjectsTop": ["West (U.S.)", "Fisher, Vardis, 1895-1968"], "genres": ["Criticism, interpretation, etc"], "totalPages": 267, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 9.4, "difficulty": 4.17, "pageScore": 2.67, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9961435301851"}, {"title": "Written on water : essays on Idaho rivers", "author": "Blew, Mary Clearman, 1939-", "year": 2001, "originalPub": null, "subjects": ["Rivers -- Idaho", "Landscapes -- Idaho", "Idaho -- Description and travel", "Idaho -- Biography", "Idaho -- Social life and customs"], "subjectsTop": ["Rivers", "Landscapes", "Idaho", "Idaho", "Idaho"], "genres": ["Biographies"], "totalPages": 229, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 9.1, "difficulty": 3.79, "pageScore": 2.29, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9961355101851"}, {"title": "At home afloat : women on the waters of the Pacific Northwest", "author": "Pagh, Nancy, 1963-", "year": 2001, "originalPub": null, "subjects": ["Women and the sea -- Northwest, Pacific", "Seafaring life -- Northwest, Pacific", "Boats and boating -- Northwest, Pacific", "Sex role -- Northwest, Pacific"], "subjectsTop": ["Women and the sea", "Seafaring life", "Boats and boating", "Sex role"], "genres": [], "totalPages": 198, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 9.1, "difficulty": 3.48, "pageScore": 1.98, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9961191501851"}, {"title": "Hate is my neighbor", "author": "Alibrandi, Tom. ; Wassmuth, Bill.", "year": 2001, "originalPub": null, "subjects": ["White supremacy movements -- Idaho", "Antisemitism -- Idaho", "Racism -- Idaho", "Idaho -- Race relations"], "subjectsTop": ["White supremacy movements", "Antisemitism", "Racism", "Idaho"], "genres": [], "totalPages": 210, "hasIllustrations": false, "illTypes": [], "illTypeCount": 0, "dimensions": 8.7, "difficulty": 2.1, "pageScore": 2.1, "illScore": 0, "illTypeScore": 0.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9964388301851"}, {"title": "Tough trip through paradise, 1878-1879", "author": "Garcia, Andrew, -1943. ; Stein, Bennett H.", "year": 2001, "originalPub": null, "subjects": ["Frontier and pioneer life -- Montana", "Trapping -- Montana -- History -- 19th century", "Indians of North America -- Montana -- History -- 19th century", "Nez Perce\u0301 Indians -- Montana -- History -- 19th century", "Nez Perce\u0301 Indians -- Wars, 1877", "Pioneers -- Montana -- Biography", "Adventure and adventurers -- Montana -- Biography", "Montana -- Description and travel", "Montana -- History -- 19th century", "Garcia, Andrew, -1943"], "subjectsTop": ["Frontier and pioneer life", "Trapping", "Indians of North America", "Nez Perce\u0301 Indians", "Nez Perce\u0301 Indians", "Pioneers", "Adventure and adventurers", "Montana", "Montana", "Garcia, Andrew, -1943"], "genres": ["History", "Biographies"], "totalPages": 427, "hasIllustrations": true, "illTypes": ["maps"], "illTypeCount": 1, "dimensions": 7.1, "difficulty": 5.77, "pageScore": 4.27, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9963710701851"}, {"title": "Death and the good life : a mystery", "author": "Hugo, Richard, 1923-1982. ; Welch, James, 1940-2003, writer of foreword.", "year": 2002, "originalPub": null, "subjects": ["Ex-police officers -- Fiction", "Fishers -- Crimes against -- Fiction", "Women murderers -- Fiction", "American fiction -- 20th century", "Northwest, Pacific -- Fiction", "Montana -- Fiction"], "subjectsTop": ["Ex-police officers", "Fishers", "Women murderers", "American fiction", "Northwest, Pacific", "Montana"], "genres": ["Fiction", "Mystery fiction", "Detective and mystery fiction"], "totalPages": 242, "hasIllustrations": false, "illTypes": [], "illTypeCount": 0, "dimensions": 8.7, "difficulty": 2.42, "pageScore": 2.42, "illScore": 0, "illTypeScore": 0.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9969893101851"}, {"title": "The Nez Perce nation divided : firsthand accounts of events leading to the 1863 treaty", "author": "Baird, Dennis W.; Mallickan, Diane. ; Swagerty, William R.", "year": 2002, "originalPub": null, "subjects": ["Nez Perce\u0301 Indians -- History -- Sources", "Nez Perce\u0301 Indians -- Land tenure", "Clearwater River Region (Idaho) -- History -- Sources"], "subjectsTop": ["Nez Perce\u0301 Indians", "Nez Perce\u0301 Indians", "Clearwater River Region (Idaho)"], "genres": ["History", "Sources"], "totalPages": 484, "hasIllustrations": true, "illTypes": ["illustrations", "maps"], "illTypeCount": 2, "dimensions": 10.6, "difficulty": 6.84, "pageScore": 4.84, "illScore": 1, "illTypeScore": 1.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9967523401851"}, {"title": "Hike Lewis and Clark's Idaho", "author": "Aegerter, Mary. ; Russell, Steve F.", "year": 2002, "originalPub": null, "subjects": ["Hiking -- Idaho -- Guidebooks", "Idaho -- Guidebooks", "Lewis and Clark Expedition (1804-1806)"], "subjectsTop": ["Hiking", "Idaho", "Lewis and Clark Expedition (1804-1806)"], "genres": ["Guidebooks"], "totalPages": 235, "hasIllustrations": true, "illTypes": ["illustrations", "maps"], "illTypeCount": 2, "dimensions": 8.7, "difficulty": 4.35, "pageScore": 2.35, "illScore": 1, "illTypeScore": 1.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9967491901851"}, {"title": "Gold camps & silver cities : nineteenth-century mining in central and southern Idaho", "author": "Wells, Merle W.", "year": 2002, "originalPub": null, "subjects": ["Gold mines and mining -- Idaho", "Lead mines and mining -- Idaho", "Silver mines and mining -- Idaho", "Idaho -- History"], "subjectsTop": ["Gold mines and mining", "Lead mines and mining", "Silver mines and mining", "Idaho"], "genres": ["History"], "totalPages": 245, "hasIllustrations": true, "illTypes": ["illustrations", "maps"], "illTypeCount": 2, "dimensions": 9.4, "difficulty": 4.45, "pageScore": 2.45, "illScore": 1, "illTypeScore": 1.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9967522301851"}, {"title": "Lewis and Clark's mountain wilds : a site guide to the plants and animals they encountered in the Bitterroots", "author": "Ritter, Sharon A.", "year": 2002, "originalPub": null, "subjects": ["Natural history -- Bitterroot Range (Idaho and Mont.) -- Guidebooks", "Bitterroot Range (Idaho and Mont.) -- Guidebooks", "Lewis and Clark Expedition (1804-1806)"], "subjectsTop": ["Natural history", "Bitterroot Range (Idaho and Mont.)", "Lewis and Clark Expedition (1804-1806)"], "genres": ["travel guidebooks", "Guidebooks"], "totalPages": 328, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 9.1, "difficulty": 4.78, "pageScore": 3.28, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9967522101851"}, {"title": "In Nez Perce country : accounts of the Bitterroots and the Clearwater after Lewis and Clark", "author": "Baird, Lynn (Lynn N.), compiler. ; Baird, Dennis W.", "year": 2003, "originalPub": null, "subjects": ["Nez Perce\u0301 Indians -- History", "Clearwater National Forest (Idaho) -- History", "Bird-Truax Trail (Idaho and Mont.) -- History", "Northern Pacific Railroad Company -- History", "Lewis and Clark Expedition (1804-1806)"], "subjectsTop": ["Nez Perce\u0301 Indians", "Clearwater National Forest (Idaho)", "Bird-Truax Trail (Idaho and Mont.)", "Northern Pacific Railroad Company", "Lewis and Clark Expedition (1804-1806)"], "genres": ["History"], "totalPages": 296, "hasIllustrations": true, "illTypes": ["illustrations", "maps"], "illTypeCount": 2, "dimensions": 9.1, "difficulty": 4.96, "pageScore": 2.96, "illScore": 1, "illTypeScore": 1.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9972108601851"}, {"title": "Teaching Hemingway's The sun also rises", "author": "Hays, Peter L., 1938-", "year": 2003, "originalPub": null, "subjects": ["Expatriation in literature", "France -- In literature", "Spain -- In literature", "Hemingway, Ernest, 1899-1961 Sun also rises", "Hemingway, Ernest, 1899-1961 -- Study and teaching"], "subjectsTop": ["Expatriation in literature", "France", "Spain", "Hemingway, Ernest, 1899-1961 Sun also rises", "Hemingway, Ernest, 1899-1961"], "genres": [], "totalPages": 412, "hasIllustrations": false, "illTypes": [], "illTypeCount": 0, "dimensions": 9.4, "difficulty": 4.12, "pageScore": 4.12, "illScore": 0, "illTypeScore": 0.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9973177201851"}, {"title": "Common courage : Bill Wassmuth, human rights, and small-town activism", "author": "Vogt, Andrea, 1971-", "year": 2003, "originalPub": null, "subjects": ["Human rights workers -- West (U.S.) -- Biography", "Human rights -- West (U.S.)", "Social justice -- West (U.S.)", "Catholic Church -- West (U.S.) -- Clergy -- Biography", "Wassmuth, Bill"], "subjectsTop": ["Human rights workers", "Human rights", "Social justice", "Catholic Church", "Wassmuth, Bill"], "genres": ["collective biographies", "Biographies"], "totalPages": 265, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 8.7, "difficulty": 4.15, "pageScore": 2.65, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9972149801851"}, {"title": "Bold spirit : Helga Estby's forgotten walk across Victorian America", "author": "Hunt, Linda, 1940-", "year": 2003, "originalPub": null, "subjects": ["Walking -- United States -- History -- 19th century", "Norwegian Americans -- Biography", "Mothers and daughters -- United States -- Biography", "United States -- Description and travel", "United States -- Social life and customs -- 1865-1918", "Estby, Helga, 1860-1942 -- Travel -- United States", "Estby, Clara, 1876-1950 -- Travel -- United States"], "subjectsTop": ["Walking", "Norwegian Americans", "Mothers and daughters", "United States", "United States", "Estby, Helga, 1860-1942", "Estby, Clara, 1876-1950"], "genres": ["History", "Biographies"], "totalPages": 322, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 7.5, "difficulty": 4.72, "pageScore": 3.22, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9969864801851"}, {"title": "Forged in fire : essays by Idaho writers", "author": "Blew, Mary Clearman, 1939-; Druker, Phil.", "year": 2005, "originalPub": null, "subjects": ["American literature -- Idaho -- History and criticism", "Authors, American -- Homes and haunts -- Idaho", "American essays -- Idaho", "Fire in literature", "Authorship", "American literature -- Idaho -- Literary collections", "American essays -- Idaho -- Literary collections", "Idaho -- Intellectual life", "Idaho -- In literature"], "subjectsTop": ["American literature", "Authors, American", "American essays", "Fire in literature", "Authorship", "American literature", "American essays", "Idaho", "Idaho"], "genres": ["Literary collections", "Criticism, interpretation, etc"], "totalPages": 261, "hasIllustrations": false, "illTypes": [], "illTypeCount": 0, "dimensions": 9.1, "difficulty": 2.61, "pageScore": 2.61, "illScore": 0, "illTypeScore": 0.0, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9995018401851"}, {"title": "The island of the Anishnaabeg : thunderers and water monsters in the traditional Ojibwe life-world", "author": "Smith, Theresa S., 1956-", "year": 2012, "originalPub": null, "subjects": ["Ojibwa Indians -- Religion", "Ojibwa mythology", "Manitoulin Island (Ont.) -- Religious life and customs"], "subjectsTop": ["Ojibwa Indians", "Ojibwa mythology", "Manitoulin Island (Ont.)"], "genres": [], "totalPages": 246, "hasIllustrations": true, "illTypes": ["illustrations"], "illTypeCount": 1, "dimensions": 9.1, "difficulty": 3.96, "pageScore": 2.46, "illScore": 1, "illTypeScore": 0.5, "permalink": "https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma99116644820001451"}];
+
+// ================================================================
+// HELPERS
+// ================================================================
+function normalizeGenre(g) {
+  if (!g || !g.length) return "Unclassified";
+  const s = g.map(x => x.toLowerCase()).join(" ");
+  if (/fiction|western stories|western fiction|mystery|domestic fiction|love stories|romance|bildungsroman/.test(s)) return "Fiction";
+  if (/autobiograph|biograph|collective bio|diaries|diary|letters|personal correspondence|interviews/.test(s)) return "Biography/Memoir";
+  if (/\bhistory\b|local history/.test(s)) return "History";
+  if (/criticism|interpretation|aufsatz/.test(s)) return "Criticism";
+  if (/\bpoetry\b|\bpoems\b/.test(s)) return "Poetry";
+  if (/guidebook|field guide|travel guide/.test(s)) return "Guidebook";
+  return "Other";
+}
+
+function themeOf(tops) {
+  const s = tops.map(x => x.toLowerCase()).join(" ¦ ");
+  const out = [];
+  if (/idaho|clearwater|orofino|joseph plains|camas prairie|coeur d.alene/.test(s)) out.push("Idaho");
+  if (/indian|nez perc|bannock|shoshoni|mandan|eskimo|inuit|ojibwa|hidatsa|creek indian|shamanism|witchcraft|calumets/.test(s)) out.push("Native American");
+  if (/frontier|pioneer|west \(u\.s\.\)|western stories|cowboy|ranch|homestead|trapper|mountain life|adventure/.test(s)) out.push("Western Frontier");
+  if (/mine|mining|mineral|gold|silver|klondike/.test(s)) out.push("Mining");
+  if (/northwest, pacific|northwest, canadian|columbia river|montana|oregon|washington state|railroads/.test(s)) out.push("Pacific NW");
+  if (/agricultur|farming|cultivation|ranch life|sheep|cattle|logging/.test(s)) out.push("Agriculture");
+  if (/literature|fiction|poetry|author|novel|hemingway|steinbeck|twain|stegner|fisher|wagoner|doig|ferril/.test(s)) out.push("Literature");
+  if (/natural history|birds|trees|mushroom|ecolog|conservation|wildlife|forest|geology|volcanism|vegetation/.test(s)) out.push("Nature");
+  return out;
+}
+
+function trunc(s, n) { return s.length > n ? s.slice(0, n) + "…" : s; }
+
+const GCOL = {
+  "History":        "#c9913a",
+  "Fiction":        "#4a8a7c",
+  "Biography/Memoir":"#9060b5",
+  "Criticism":      "#5a7dc4",
+  "Poetry":         "#b5485a",
+  "Guidebook":      "#4a8a5a",
+  "Other":          "#6a5a3a",
+  "Unclassified":   "#4a4438"
+};
+const DCOL = { "Pages":"#4a6ab5", "Illustrations":"#c9913a", "Ill. Types":"#b5593a" };
+const TCOL = {
+  "Idaho":          "#c9913a",
+  "Native American":"#b5593a",
+  "Western Frontier":"#9060b5",
+  "Mining":         "#888460",
+  "Pacific NW":     "#4a8a7c",
+  "Agriculture":    "#4a8a5a",
+  "Literature":     "#5a7dc4",
+  "Nature":         "#6aa060"
+};
+
+const books = DATA.map(d => ({
+  ...d,
+  genreNorm: normalizeGenre(d.genres),
+  themes: themeOf(d.subjectsTop)
+}));
+
+// Stats
+const nTitles = books.length;
+const yMin = d3.min(books, d => d.year), yMax = d3.max(books, d => d.year);
+const nIll = books.filter(d => d.hasIllustrations).length;
+const avgPg = Math.round(d3.mean(books, d => d.totalPages));
+const nSubj = d3.sum(books, d => d.subjects.length);
+document.getElementById("stats").innerHTML = [
+  ["Titles", nTitles],
+  ["Publication span", yMin + "–" + yMax],
+  ["Illustrated", nIll],
+  ["Avg. pages", avgPg],
+  ["Subject entries", nSubj]
+].map(([l,v]) => `<div><span class="stat-value">${v}</span><span class="stat-label">${l}</span></div>`).join("");
+
+// Tooltip
+const tip = document.getElementById("tooltip");
+function showTip(e, html) {
+  tip.innerHTML = html;
+  tip.classList.add("show");
+  moveTip(e);
+}
+function moveTip(e) {
+  const tx = e.clientX + 15, ty = e.clientY - 8;
+  const tw = tip.offsetWidth, th = tip.offsetHeight;
+  tip.style.left = (tx + tw > window.innerWidth - 8 ? tx - tw - 28 : tx) + "px";
+  tip.style.top  = (ty + th > window.innerHeight - 8 ? ty - th : ty) + "px";
+}
+function hideTip() { tip.classList.remove("show"); }
+
+// ================================================================
+// CHART 1 — TIMELINE BUBBLE
+// ================================================================
+(function() {
+  const M = {t:20,r:30,b:50,l:55}, W=1000, H=420;
+  const w = W-M.l-M.r, h = H-M.t-M.b;
+  const svg = d3.select("#c1").append("svg")
+    .attr("viewBox",`0 0 ${W} ${H}`).attr("style","width:100%;height:auto;");
+  const g = svg.append("g").attr("transform",`translate(${M.l},${M.t})`);
+
+  const x = d3.scaleLinear().domain([1963,2015]).range([0,w]);
+  const y = d3.scaleLinear().domain([0, d3.max(books,d=>d.totalPages)+30]).range([h,0]);
+  const r = d3.scaleSqrt().domain([0, d3.max(books,d=>d.subjects.length)]).range([3,16]);
+
+  g.append("g").attr("class","grid").call(d3.axisLeft(y).tickSize(-w).tickFormat("").ticks(6));
+  g.append("g").attr("class","grid").attr("transform",`translate(0,${h})`).call(d3.axisBottom(x).tickSize(-h).tickFormat("").ticks(10));
+
+  g.append("g").attr("class","axis").attr("transform",`translate(0,${h})`).call(d3.axisBottom(x).tickFormat(d3.format("d")).ticks(10));
+  g.append("g").attr("class","axis").call(d3.axisLeft(y).ticks(6));
+
+  g.append("text").attr("x",w/2).attr("y",h+40).attr("text-anchor","middle")
+    .attr("fill","var(--text-muted)").attr("font-family","JetBrains Mono,monospace").attr("font-size",11).text("Publication Year");
+  g.append("text").attr("transform","rotate(-90)").attr("x",-h/2).attr("y",-43)
+    .attr("text-anchor","middle").attr("fill","var(--text-muted)").attr("font-family","JetBrains Mono,monospace").attr("font-size",11).text("Total Pages");
+
+  const timelineBooks = books.filter(d => d.totalPages > 0);
+  g.selectAll("circle").data(timelineBooks).join("circle")
+    .attr("cx", d=>x(d.year)).attr("cy", d=>y(d.totalPages))
+    .attr("r",  d=>r(d.subjects.length))
+    .attr("fill", d=>GCOL[d.genreNorm]).attr("fill-opacity",0.72)
+    .attr("stroke", d=>GCOL[d.genreNorm]).attr("stroke-width",0.8)
+    .style("cursor","pointer")
+    .on("mouseover",(e,d)=>{
+      d3.select(e.currentTarget).attr("fill-opacity",0.95).attr("r",r(d.subjects.length)+2);
+      const sl = d.subjectsTop.slice(0,4).join("; ")+(d.subjectsTop.length>4?` +${d.subjectsTop.length-4} more`:"");
+      showTip(e,`<strong>${trunc(d.title,64)}</strong>
+        <span class="tm">${trunc(d.author.split(";")[0].trim(),40)} · ${d.year}</span>
+        <span class="tm">Genre: ${d.genreNorm} · Pages: ${d.totalPages}${d.hasIllustrations ? " · Illus: "+d.illTypes.join(", ") : " · No illustrations"}</span>
+        <span class="ts">${sl||"(no subjects)"}</span>`);
+    })
+    .on("mousemove",moveTip).on("mouseout",(e,d)=>{
+      d3.select(e.currentTarget).attr("fill-opacity",0.72).attr("r",r(d.subjects.length));
+      hideTip();
+    })
+    .on("click",(e,d)=>{ if(d.permalink) window.open(d.permalink,"_blank","noopener"); })
+    .style("cursor","pointer");
+
+  document.getElementById("l1").innerHTML =
+    Object.entries(GCOL).map(([k,v])=>`<span class="legend-item"><span class="l-dot" style="background:${v}"></span>${k}</span>`).join("") +
+    `<span class="legend-item" style="margin-left:12px;color:var(--text-dim)">● size = subject count</span>`;
+})();
+
+
+// ================================================================
+// CHART 3 — THEMATIC DISTRIBUTION BY DECADE
+// ================================================================
+(function() {
+  const decades = ["1960s","1970s","1980s","1990s","2000s","2010s"];
+  const tKeys = Object.keys(TCOL);
+  const decData = decades.map(dec => {
+    const dy = parseInt(dec);
+    const db = books.filter(d => d.year >= dy && d.year < dy + 10);
+    const obj = {decade: dec, total: db.length};
+    tKeys.forEach(t => { obj[t] = db.filter(b => b.themes.includes(t)).length; });
+    return obj;
+  });
+
+  const M = {t:20, r:30, b:65, l:50}, W=1000, H=400;
+  const w = W - M.l - M.r, h = H - M.t - M.b;
+
+  const svg = d3.select("#c3").append("svg")
+    .attr("viewBox", `0 0 ${W} ${H}`)
+    .attr("style", "width:100%;height:auto;");
+  const g = svg.append("g").attr("transform", `translate(${M.l},${M.t})`);
+
+  const x0 = d3.scaleBand().domain(decades).range([0, w]).paddingInner(0.22);
+  const x1 = d3.scaleBand().domain(tKeys).range([0, x0.bandwidth()]).padding(0.06);
+  const yMax = d3.max(decData, d => d3.max(tKeys, k => d[k]));
+  const y = d3.scaleLinear().domain([0, yMax + 1]).range([h, 0]).nice();
+
+  g.append("g").attr("class","grid")
+    .call(d3.axisLeft(y).tickSize(-w).tickFormat("").ticks(6));
+
+  const dg = g.selectAll(".dg").data(decData).join("g")
+    .attr("class","dg")
+    .attr("transform", d => `translate(${x0(d.decade)},0)`);
+
+  dg.selectAll("rect")
+    .data(d => tKeys.map(k => ({key:k, val:d[k], dec:d.decade, total:d.total})))
+    .join("rect")
+    .attr("x",      d => x1(d.key))
+    .attr("y",      d => y(d.val))
+    .attr("width",  x1.bandwidth())
+    .attr("height", d => h - y(d.val))
+    .attr("fill",   d => TCOL[d.key])
+    .attr("opacity", 0.85)
+    .on("mouseover", (e, d) => {
+      showTip(e, `<strong>${d.key} — ${d.dec}</strong>
+        <span class="tm">${d.val} title${d.val !== 1 ? "s" : ""} out of ${d.total} published this decade</span>`);
+    })
+    .on("mousemove", moveTip)
+    .on("mouseout",  hideTip);
+
+  decData.forEach(dec => {
+    g.append("text")
+      .attr("x", x0(dec.decade) + x0.bandwidth() / 2)
+      .attr("y", h + 28)
+      .attr("text-anchor","middle")
+      .attr("fill","var(--text-dim)")
+      .attr("font-family","JetBrains Mono,monospace")
+      .attr("font-size", 10)
+      .text("n=" + dec.total);
+  });
+
+  g.append("g").attr("class","axis")
+    .attr("transform", `translate(0,${h})`)
+    .call(d3.axisBottom(x0));
+  g.append("g").attr("class","axis")
+    .call(d3.axisLeft(y).ticks(6));
+
+  g.append("text").attr("x", w/2).attr("y", h + 52)
+    .attr("text-anchor","middle")
+    .attr("fill","var(--text-muted)")
+    .attr("font-family","JetBrains Mono,monospace")
+    .attr("font-size", 11)
+    .text("Decade");
+
+  g.append("text").attr("transform","rotate(-90)")
+    .attr("x", -h/2).attr("y", -38)
+    .attr("text-anchor","middle")
+    .attr("fill","var(--text-muted)")
+    .attr("font-family","JetBrains Mono,monospace")
+    .attr("font-size", 11)
+    .text("Titles with theme");
+
+  document.getElementById("l3").innerHTML = tKeys.map(k =>
+    `<span class="legend-item"><span class="l-sq" style="background:${TCOL[k]}"></span>${k}</span>`
+  ).join("");
+})();
+
+// ================================================================
+// CHART 4 — SUBJECT OVERLAP: GRID-ORDERED NODE MAP
+// ================================================================
+(function() {
+  // ── Build hierarchy (3+ first-level subgroups) ────────────────
+  const headingMap = new Map();
+  books.forEach(b => {
+    b.subjects.forEach(s => {
+      const parts = s.split(' -- ').map(p => p.trim());
+      const hd = parts[0], sub = parts[1] || null;
+      if (!headingMap.has(hd))
+        headingMap.set(hd, { titleSet: new Set(), subMap: new Map() });
+      const h = headingMap.get(hd);
+      h.titleSet.add(b.title);
+      if (sub) {
+        if (!h.subMap.has(sub)) h.subMap.set(sub, new Set());
+        h.subMap.get(sub).add(b.title);
+      }
+    });
+  });
+
+  const headings = Array.from(headingMap.entries())
+    .map(([label, v]) => ({
+      label,
+      count:  v.titleSet.size,
+      titles: Array.from(v.titleSet).sort(),
+      subs:   Array.from(v.subMap.entries())
+        .map(([sl, ts]) => ({ label: sl, count: ts.size, titles: Array.from(ts).sort() }))
+        .sort((a, b) => b.count - a.count)
+    }))
+    .filter(h => h.subs.length >= 3)
+    .sort((a, b) => b.count - a.count); // most frequent → top-left
+
+  if (!headings.length) return;
+
+  // ── Unique color per heading (palette of 20 distinct hues) ────
+  const PALETTE = [
+    "#b5591a","#2a6ab5","#2a8a62","#8a3a9a","#c9871a",
+    "#1a7a9a","#9a2a42","#4a7a2a","#7a3a72","#2a5a3a",
+    "#8a5f1a","#3a4a9a","#9a5a2a","#1a6a5a","#7a1a4a",
+    "#4a6a2a","#5a2a8a","#1a5a8a","#8a2a5a","#2a7a4a"
+  ];
+  headings.forEach((h, i) => { h.color = PALETTE[i % PALETTE.length]; });
+
+  // ── Scales ───────────────────────────────────────────────────
+  const maxH = d3.max(headings, h => h.count);
+  const maxS = d3.max(headings.flatMap(h => h.subs), s => s.count);
+  const rH   = d3.scaleSqrt().domain([1, maxH]).range([32, 66]);
+  const rS   = d3.scaleSqrt().domain([1, maxS]).range([5,  11]);
+
+  // ── Grid layout: most frequent → top-left, least → bottom-right
+  const N      = headings.length;
+  const N_COLS = N <= 9 ? 3 : N <= 20 ? 5 : 5;
+  const ML = 20, MT = 20;
+  const SVG_W  = 1000;
+  const STRIDE = Math.floor((SVG_W - ML * 2) / N_COLS); // cell size (square)
+  const N_ROWS = Math.ceil(N / N_COLS);
+  const SVG_H  = N_ROWS * STRIDE + MT * 2;
+
+  // Assign deterministic cell centres
+  const hnodes = headings.map((h, i) => ({
+    ...h,
+    r: rH(h.count),
+    x: ML + (i % N_COLS) * STRIDE + STRIDE / 2,
+    y: MT + Math.floor(i / N_COLS) * STRIDE + STRIDE / 2
+  }));
+
+  // Subgroup dots – radial around parent heading, starting top
+  const snodes = [];
+  hnodes.forEach(hn => {
+    const n = hn.subs.length;
+    hn.subs.forEach((sub, si) => {
+      const angle = (2 * Math.PI * si / n) - Math.PI / 2;
+      const dist  = hn.r + rS(sub.count) + 8;
+      snodes.push({
+        label:       sub.label,
+        count:       sub.count,
+        titles:      sub.titles,
+        r:           rS(sub.count),
+        color:       hn.color,
+        parentLabel: hn.label,
+        x: hn.x + Math.cos(angle) * dist,
+        y: hn.y + Math.sin(angle) * dist
+      });
+    });
+  });
+
+  // ── SVG ──────────────────────────────────────────────────────
+  const svg = d3.select('#c4').append('svg')
+    .attr('viewBox', `0 0 ${SVG_W} ${SVG_H}`)
+    .attr('style', 'width:100%;height:auto;');
+
+  // L1 – heading fill (light wash)
+  svg.selectAll('circle.hfill').data(hnodes).join('circle')
+    .attr('cx', d => d.x).attr('cy', d => d.y).attr('r', d => d.r)
+    .attr('fill', d => d.color).attr('fill-opacity', 0.13)
+    .attr('stroke', 'none').style('pointer-events', 'none');
+
+  // L2 – subgroup dots (no label until hover)
+  svg.selectAll('circle.sdot').data(snodes).join('circle')
+    .attr('cx', d => d.x).attr('cy', d => d.y).attr('r', d => d.r)
+    .attr('fill', d => d.color).attr('fill-opacity', 0.72)
+    .attr('stroke', d => d.color).attr('stroke-width', 0.5)
+    .style('cursor', 'default')
+    .on('mouseover', (e, d) => {
+      const listed = d.titles.slice(0, 10).join('; ') +
+        (d.titles.length > 10 ? ` +${d.titles.length - 10} more` : '');
+      showTip(e, `<strong>${d.parentLabel} \u2014 ${d.label}</strong>
+        <span class="tm">${d.count} title${d.count > 1 ? 's' : ''}</span>
+        <span class="ts">${listed}</span>`);
+    })
+    .on('mousemove', moveTip).on('mouseout', hideTip);
+
+  // L3 – heading ring (hover target + border)
+  svg.selectAll('circle.hring').data(hnodes).join('circle')
+    .attr('cx', d => d.x).attr('cy', d => d.y).attr('r', d => d.r)
+    .attr('fill', 'none')
+    .attr('stroke', d => d.color).attr('stroke-width', 2.5).attr('stroke-opacity', 0.8)
+    .style('cursor', 'default')
+    .on('mouseover', (e, d) => {
+      const listed = d.titles.slice(0, 10).join('; ') +
+        (d.titles.length > 10 ? ` +${d.titles.length - 10} more` : '');
+      showTip(e, `<strong>${d.label}</strong>
+        <span class="tm">${d.count} title${d.count > 1 ? 's' : ''} \u00b7 ${d.subs.length} subgroups</span>
+        <span class="ts">${listed}</span>`);
+    })
+    .on('mousemove', moveTip).on('mouseout', hideTip);
+
+  // L4 – heading labels (always visible, wrapped inside ring)
+  hnodes.forEach(n => {
+    const fs  = 11;
+    // available width inside ring ≈ diameter × 0.72
+    const cpl = Math.floor((n.r * 1.44) / (fs * 0.57));
+    const words = n.label.split(' ');
+    const lines = [];
+    let cur = '';
+    words.forEach(w => {
+      const test = cur ? cur + ' ' + w : w;
+      if (test.length <= cpl) { cur = test; }
+      else {
+        if (cur) lines.push(cur);
+        cur = w.length > cpl ? w.slice(0, cpl - 1) + '\u2026' : w;
+      }
+    });
+    if (cur) lines.push(cur);
+    if (lines.length > 2) { lines.length = 2; lines[1] = lines[1].slice(0, -1) + '\u2026'; }
+
+    const lh     = fs + 3;
+    const totalH = lines.length * lh;
+    lines.forEach((line, li) => {
+      svg.append('text')
+        .attr('x', n.x)
+        .attr('y', n.y - totalH / 2 + li * lh + lh * 0.82)
+        .attr('text-anchor', 'middle')
+        .attr('fill', n.color)
+        .attr('font-family', '"Source Serif 4",serif')
+        .attr('font-size', fs)
+        .attr('pointer-events', 'none')
+        .text(line);
+    });
+
+    // Frequency count (lower-right inside ring)
+    svg.append('text')
+      .attr('x', n.x + n.r * 0.60).attr('y', n.y + n.r * 0.72)
+      .attr('text-anchor', 'middle')
+      .attr('fill', n.color).attr('fill-opacity', 0.65)
+      .attr('font-family', '"JetBrains Mono",monospace')
+      .attr('font-size', 8).attr('pointer-events', 'none')
+      .text(n.count);
+  });
+
+  // No color key needed — headings are self-labeled with unique colors
+  document.getElementById('l4').innerHTML =
+    `<span class="legend-item" style="color:var(--text-dim)">` +
+    `Rings = subject headings, most frequent top-left \u2192 least frequent bottom-right &nbsp;\u00b7&nbsp; ` +
+    `Dots = subgroups, sized by frequency &nbsp;\u00b7&nbsp; Hover any node for titles` +
+    `</span>`;
+})();
+
+// ================================================================
+// CHART TECH — TECHNICAL DETAILS: ALL TITLES BY PAGE COUNT
+// ================================================================
+(function() {
+  const TD_COL = {
+    "Pages":       "#4a6ab5",
+    "Dimensions":  "#4a8a7c",
+    "Ill. Types":  "#c9913a"
+  };
+
+  const details = [...books]
+    .filter(d => d.totalPages > 0)
+    .sort((a,b) => {
+      if (a.totalPages !== b.totalPages) return a.totalPages - b.totalPages;
+      const ai = a.hasIllustrations ? 1 : 0, bi = b.hasIllustrations ? 1 : 0;
+      if (ai !== bi) return ai - bi;
+      if (a.illTypeCount !== b.illTypeCount) return a.illTypeCount - b.illTypeCount;
+      return (a.dimensions || 0) - (b.dimensions || 0);
+    })
+    .map(d => ({
+      ...d,
+      pagesVal:   d.totalPages,
+      dimVal:     Math.round((d.dimensions || 0) * 5),
+      illTypesVal: d.illTypeCount * 15
+    }));
+
+  const barH = 16, gap = 4;
+  const M = {t:10, r:80, b:50, l:290};
+  const W = 1000;
+  const h = details.length * (barH + gap);
+  const totalH = h + M.t + M.b;
+  const w = W - M.l - M.r;
+
+  const keys = ["pagesVal","dimVal","illTypesVal"];
+  const kLabel = {pagesVal:"Pages", dimVal:"Dimensions", illTypesVal:"Ill. Types"};
+  const stack = d3.stack().keys(keys)(details);
+
+  const xMax = d3.max(details, d => d.pagesVal + d.dimVal + d.illTypesVal) + 20;
+  const x = d3.scaleLinear().domain([0, xMax]).range([0, w]);
+  const y = d3.scaleBand()
+    .domain(details.map(d => d.title))
+    .range([0, h])
+    .paddingInner(0.2);
+
+  const svg = d3.select("#ctech").append("svg")
+    .attr("viewBox", `0 0 ${W} ${totalH}`)
+    .attr("style", "width:100%;height:auto;");
+  const g = svg.append("g").attr("transform", `translate(${M.l},${M.t})`);
+
+  g.append("g").attr("class","grid")
+    .attr("transform", `translate(0,${h})`)
+    .call(d3.axisBottom(x).tickSize(-h).tickFormat("").ticks(8));
+
+  const layer = g.selectAll(".lyrt").data(stack).join("g")
+    .attr("class","lyrt")
+    .attr("fill", d => TD_COL[kLabel[d.key]]);
+
+  layer.selectAll("rect").data(d => d).join("rect")
+    .attr("y",      d => y(d.data.title))
+    .attr("x",      d => x(d[0]))
+    .attr("width",  d => Math.max(0, x(d[1]) - x(d[0])))
+    .attr("height", y.bandwidth())
+    .attr("opacity", 0.85)
+    .on("mouseover", (e, d) => {
+      const b = d.data;
+      const illDetail = b.hasIllustrations
+        ? "Illustrated: " + (b.illTypes.length ? b.illTypes.join(", ") : "yes")
+        : "No illustrations";
+      showTip(e, `<strong>${trunc(b.title, 64)}</strong>
+        <span class="tm">${trunc(b.author.split(";")[0].trim(), 44)} · ${b.year}</span>
+        <span class="tm">Pages: ${b.totalPages} · ${b.dimensions ? b.dimensions + '"' : "dim. unknown"}</span>
+        <span class="ts">${illDetail}</span>`);
+    })
+    .on("mousemove", moveTip)
+    .on("mouseout",  hideTip)
+    .on("click", (e, d) => { if (d.data.permalink) window.open(d.data.permalink, "_blank", "noopener"); })
+    .style("cursor","pointer");
+
+  // Page count labels on bars
+  g.selectAll(".sct").data(details).join("text").attr("class","sct")
+    .attr("x", d => x(d.pagesVal + d.dimVal + d.illTypesVal) + 4)
+    .attr("y", d => y(d.title) + y.bandwidth() / 2 + 4)
+    .attr("fill","var(--text-muted)")
+    .attr("font-family","JetBrains Mono,monospace")
+    .attr("font-size", 9)
+    .text(d => d.totalPages + "pp");
+
+  g.append("g").attr("class","axis")
+    .call(d3.axisLeft(y).tickFormat(d => trunc(d, 40)))
+    .selectAll(".tick text")
+    .attr("fill","var(--text-muted)")
+    .attr("font-family","Source Serif 4,serif")
+    .attr("font-size", 10.5)
+    .attr("text-anchor","start")
+    .attr("x", -282)
+    .attr("dy","0.35em");
+
+  g.append("g").attr("class","axis")
+    .attr("transform", `translate(0,${h})`)
+    .call(d3.axisBottom(x).ticks(8));
+
+  g.append("text")
+    .attr("x", w/2).attr("y", h + 38)
+    .attr("text-anchor","middle")
+    .attr("fill","var(--text-muted)")
+    .attr("font-family","JetBrains Mono,monospace")
+    .attr("font-size", 11)
+    .text("Pages  +  Dimensions ×5  +  Illustration Types ×15");
+
+  document.getElementById("ltech").innerHTML =
+    Object.entries(TD_COL).map(([k,v]) =>
+      `<span class="legend-item"><span class="l-sq" style="background:${v}"></span>${k}</span>`
+    ).join("") +
+    `<span class="legend-item" style="margin-left:16px;color:var(--text-dim)">Dimensions scaled ×5 · Ill. types scaled ×15 · label = raw page count</span>`;
+})();
+
+</script>
+
+<footer style="max-width:1100px;margin:0 auto;padding:2rem 3rem 3rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;border-top:1px solid var(--border);">
+  <span style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:var(--text-dim);letter-spacing:0.04em;">uofipress_standardized.csv · 125 records · Andrew Weymouth, Summer 2026.</span>
+  <button onclick="openCsvModal()" style="display:inline-flex;align-items:center;gap:7px;font-family:'JetBrains Mono',monospace;font-size:0.78rem;font-weight:400;color:var(--text-muted);background:none;border:1px solid var(--border);padding:0.45rem 0.9rem;cursor:pointer;letter-spacing:0.04em;transition:border-color 0.15s,color 0.15s;" onmouseover="this.style.borderColor='var(--amber)';this.style.color='var(--amber)';" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)';">
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex-shrink:0;opacity:0.7">
+      <path d="M2 3.5A1.5 1.5 0 013.5 2h9A1.5 1.5 0 0114 3.5v9a1.5 1.5 0 01-1.5 1.5h-9A1.5 1.5 0 012 12.5v-9z" stroke="currentColor" stroke-width="1.2"/>
+      <path d="M5 6l2 2-2 2M8.5 10h2.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    Raw CSV
+  </button>
+</footer>
+<div id="csv-modal" style="display:none;position:fixed;inset:0;background:rgba(28,24,20,0.82);z-index:2000;align-items:center;justify-content:center;padding:1.5rem;">
+  <div style="background:var(--bg-card);border:1px solid var(--border);border-top:3px solid var(--amber);max-width:960px;width:100%;max-height:82vh;display:flex;flex-direction:column;border-radius:2px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:0.85rem 1.25rem;border-bottom:1px solid var(--border);flex-shrink:0;">
+      <span style="font-family:'JetBrains Mono',monospace;font-size:0.78rem;color:var(--text-muted);letter-spacing:0.04em;">uofipress_standardized_permalink.csv &middot; 125 records</span>
+      <div style="display:flex;gap:0.5rem;">
+        <button onclick="downloadCsv()" style="font-family:'JetBrains Mono',monospace;font-size:0.74rem;color:var(--text-muted);background:none;border:1px solid var(--border);padding:0.28rem 0.7rem;cursor:pointer;transition:border-color 0.12s,color 0.12s;" onmouseover="this.style.borderColor='var(--amber)';this.style.color='var(--amber)';" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)';">&#8595; Download</button>
+        <button onclick="closeCsvModal()" style="font-family:'JetBrains Mono',monospace;font-size:0.74rem;color:var(--text-muted);background:none;border:1px solid var(--border);padding:0.28rem 0.7rem;cursor:pointer;transition:border-color 0.12s,color 0.12s;" onmouseover="this.style.borderColor='var(--amber)';this.style.color='var(--amber)';" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text-muted)';">&#10005; Close</button>
+      </div>
+    </div>
+    <pre id="csv-pre" style="margin:0;padding:1rem 1.25rem;overflow:auto;font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--text);line-height:1.55;background:var(--bg);flex:1;white-space:pre;"></pre>
+  </div>
+</div>
+<script>
+const CSV_RAW = `title,author,pub date,original pub,subject headings,series,genre,total pages,contains illustrations,illustration types,dimensions (inches),permalink
+The Jesuits and the Indian wars of the Northwest,"Burns, Robert Ignatius.",1966,,"Indians of North America -- Wars -- 1815-1875; Indians of North America -- Northwest, Pacific -- History; Jesuits -- Northwest, Pacific",,History,526,TRUE,maps,9.4,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9939079201851
+"Dorothy S. Ainsworth : her life, professional career and contributions to physical education","Peterson, Hazel C. (Hazel Clara), 1927-",1975,,"Women physical education teachers -- United States -- Biography; Physical education teachers -- United States -- Biography; Physical education for women -- United States -- History; Ainsworth, Dorothy S (Dorothy Sears), 1894-1976",,History; Biographies,498,TRUE,"illustrations, portraits",11,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9937308801851
+Winner take all : the trans-Canada canoe trail,"Lavender, David, 1910-2003.",1977,,"Fur trade -- Canada -- History; New France -- Discovery and exploration; Northwest, Canadian -- Discovery and exploration",American trails series,History,378,TRUE,illustrations,9.1,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9939077701851
+American places,"Stegner, Wallace, 1909-1993, author. ; Stegner, Page, author. ; Macrae, John, editor.",1983,,"Natural history -- United States; United States -- Description and travel; Stegner, Wallace, 1909-1993 -- Travel -- United States",,,277,FALSE,,9.1,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9935898901851
+Shifting cultivation and the use of fire in forest zones of the tropics,"Peters, William John. ; Neuenschwander, Leon F.",1984,,Shifting cultivation -- Tropics; Prescribed burning -- Tropics,,,200,TRUE,illustrations,11,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9947394601851
+Mark Twain's America,"De Voto, Bernard, 1897-1955.",1985,1932,"Twain, Mark, 1835-1910",,,369,TRUE,illustrations,9.1,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9936674801851
+"Bonanza West : the story of the Western mining rushes, 1848-1900","Greever, William S.",1986,1963,Mines and mineral resources -- West (U.S.); Frontier and pioneer life -- West (U.S.); Klondike River Valley (Yukon) -- Gold discoveries,,,443,TRUE,maps,9.1,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9940743501851
+The peregrine,"Baker, John Alec.",1986,1967,Peregrine falcon -- Anecdotes,,Anecdotes,191,FALSE,,8.7,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9937879601851
+"The university fitness program : aerobics, lifting, diet, and nutrition","Stoll, Sharon Kay.",1986,,"Aerobic dancing -- Handbooks, manuals, etc; Physical fitness -- Handbooks, manuals, etc; Physical fitness -- Nutritional aspects -- Handbooks, manuals, etc; Exercise; Weight lifting -- Handbooks, manuals, etc; Nutrition; Vasomotor conditioning; Physical fitness",,Handbooks and manuals,121,TRUE,illustrations,9.1,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9942603401851
+Collected essays and short stories ; Works. Selections. 1986,"Davis, H. L. (Harold Lenoir), 1896-1960.",1990,1986,"Western stories; Northwest, Pacific -- Social life and customs -- Fiction; Northwest, Pacific -- Civilization",,essays; short stories; Fiction; Essays; Short stories,376,FALSE,,8.7,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9915190901851
+"The community of cattlemen : a social history of the cattle industry in southeastern Oregon, 1869-1912","Simpson, Peter K., 1930-",1987,,Cattle trade -- Oregon -- Harney County -- History; Ranchers -- Oregon -- Harney County -- History; Ranchers -- Oregon -- Harney County -- History; Cattle breeders -- Oregon -- Harney County -- History; Cattle -- Commerce -- Oregon -- Harney County -- History; Harney County (Or.) -- History,,History,242,TRUE,"illustrations, maps",9.1,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9939769201851
+Bricks and brickmaking : a handbook for historical archaeology,"Gurcke, Karl, 1948-",1987,,Archaeology and history -- United States; Brickmaking -- United States; Bricks -- United States; United States -- Antiquities,,,342,TRUE,illustrations,9.1,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9939831201851
+This crested hill : an illustrated history of the University of Idaho,"Petersen, Keith.",1987,,University of Idaho -- History; University of Idaho -- Pictorial works,,History; Illustrated works,245,TRUE,illustrations,12.2,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9940570701851
+The villanelle : the evolution of a poetic form,"McFarland, Ronald E.",1987,,English poetry -- History and criticism; Villanelles -- History and criticism; English poetry -- European influences; Romance-language poetry -- History and criticism; Literary form; Comparative literature -- English and Romance; Comparative literature -- English and Romance,,"Criticism, interpretation, etc",173,FALSE,,9.1,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9941755501851
+The horse interlude : a pictorial history of horse and man in the inland Northwest,"Keith, T. B. (Thomas Byron), 1896- ; Pole, Gregory A., illustrator. ; Anderson, Clifton E., 1923-2015, editor.",1988,1976,"Horses -- Northwest, Pacific -- History; Draft horses -- Northwest, Pacific -- History; Wheat -- Northwest, Pacific -- History",,History,195,TRUE,"illustrations, maps, portraits",11,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma99335260194201451
+Unearned pleasures and other stories,"Hegi, Ursula, author.",1988,,Germany -- Social life and customs -- Fiction,,Fiction,119,FALSE,,8.3,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9943002601851
+Bound for Idaho : the 1864 trail journal of Julius Merrill,"Merrill, Julius. ; Merrill, Irving R. (Irving Rodgers), 1919-",1988,,"Pioneers -- West (U.S.) -- Diaries; Oregon National Historic Trail; West (U.S.) -- Description and travel; West (U.S.) -- History -- 1860-1890; Idaho -- Biography; Merrill, Julius -- Diaries",,diaries; History; Biographies; Diaries,240,TRUE,illustrations,8.3,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma994056901851
+We sagebrush folks,"Greenwood, Annie Pike.",1988,,"Farm life -- Idaho -- History -- 20th century; Idaho -- Social life and customs; Idaho -- Biography; Greenwood, Annie Pike",,Autobiographies; Biographies; History,512,TRUE,illustrations,8.7,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9943043001851
+Slash and burn : farming in the Third World forest,"Peters, William John. ; Neuenschwander, Leon F.",1988,,Shifting cultivation -- Developing countries,,,125,TRUE,illustrations,9.4,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9943004401851
+Offering smoke : the sacred pipe and Native American religion,"Paper, Jordan D.",1988,,Calumets; Indians of North America -- Religion; Indians of North America -- Rites and ceremonies; Calumets -- North America,,,192,TRUE,"illustrations, map",10.2,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9944700501851
+Idaho's poetry : a centennial anthology,"McFarland, Ronald E.;Studebaker, William.",1988,,American poetry -- Idaho; Idaho -- Poetry,,poetry,250,FALSE,,9.1,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9960088901851
+Conservators of hope : the Horace M. Albright conservation lectures,"Albright, Horace M. (Horace Marden), 1890-1987.",1988,,Conservation of natural resources; Conservation of natural resources -- United States; Natural resources -- Management; Natural resources -- United States -- Management; Environmental protection; Environmental protection -- United States,,,590,TRUE,portraits,9.4,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9944700201851
+Idaho place names : a geographical dictionary,"Boone, Lalia Phipps, 1907-1990.",1988,,"Names, Geographical -- Idaho; Idaho -- History, Local",,Local history,440,TRUE,illustrations,9.1,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma996020701851
+Witchcraft and sorcery of the American native peoples,"Walker, Deward E.",1989,,Indians -- Religion; Eskimos -- Religion; Shamanism -- North America; Shamanism -- South America; Witchcraft -- North America; Witchcraft -- South America,,,357,TRUE,"illustrations, maps",10.2,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9946433001851
+Our promised land,"Neuberger, Richard L. (Richard Lewis), 1912-1960.",1989,,"Northwest, Pacific -- Politics and government; Northwest, Pacific -- Economic conditions",,,416,TRUE,map,8.7,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9945331401851
+Reminiscences : incidents in the life of a pioneer in Oregon and Idaho,"Goulder, William Armistead.",1989,,"Pioneers -- Idaho -- Biography; Frontier and pioneer life -- Idaho; Idaho -- Biography; Idaho -- Social life and customs; Idaho -- Gold discoveries; Goulder, William Armistead","Idaho yesterdays (Moscow, Idaho)",Autobiographies; Biographies,392,TRUE,portraits,8.3,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9946750801851
+The idea of agrarianism : from hunter-gatherer to agrarian radical in Western culture,"Montmarquet, James A.",1989,,Peasants -- History; Agriculture -- Origin; Agriculture -- Social aspects -- History; Agriculture and politics -- History; Agriculture,,History,277,FALSE,,9.1,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9945033001851
+The resources and attractions of Idaho territory,"Strahorn, Robert E. (Robert Edmund), 1852-1944.",1990,,Idaho Territory -- Description and travel,"Idaho yesterdays (Moscow, Idaho)",,104,TRUE,illustrations,8.7,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma996717901851
+Religion in native North America,"Vecsey, Christopher.",1990,,Indians of North America -- Religion,,Aufsatzsammlung,214,TRUE,illustrations,9.1,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9946656801851
+Stump ranch pioneer,"Davis, Nelle Portrey, 1901-1986.",1990,,"Ranch life -- Idaho -- History -- 20th century; Frontier and pioneer life -- Idaho; Idaho -- Social life and customs; Idaho -- Biography; Davis, Nelle Portrey, 1901-1986 -- Family; Davis family","Idaho yesterdays (Moscow, Idaho)",History; Biographies,265,FALSE,,8.3,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9947187301851
+Six decades back,"Walgamott, Charles S. (Charles Shirley), 1857-1937. ;Arrington, Leonard J.; Hall, R. H. (Robert H.)",1990,,"Pioneers -- Idaho -- Biography; Frontier and pioneer life -- Idaho; Indians of North America -- Idaho; Idaho -- History; Snake River Valley (Wyo.-Wash.) -- Gold discoveries; Walgamott, Charles S (Charles Shirley), 1857-1937","Idaho yesterdays (Moscow, Idaho)",Autobiographies; Biographies; History,405,TRUE,illustrations,8.3,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9946888201851
+Journal of an exploring tour beyond the Rocky Mountains,"Parker, Samuel, 1779-1866.",1990,,"Overland journeys to the Pacific; Indians of North America -- West (U.S.); Indians of North America -- Languages -- Glossaries, vocabularies, etc; Northwest, Pacific -- Description and travel; Hawaii -- Description and travel; Parker, Samuel, 1779-1866 -- Travel","Idaho yesterdays (Moscow, Idaho)","Glossaries, vocabularies",0,TRUE,"illustrations, map",8.3,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma996879601851
+The story of Idaho,"Young, Virgil M., 1936-",1990,,Idaho -- Juvenile literature; Idaho -- History -- Juvenile literature,,History; Juvenile works,257,TRUE,illustrations,11.4,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9945917501851
+Building Idaho : an architectural history,"Attebery, Jennifer Eastman, 1951-; Hart, Arthur A., writer of foreword. ; Fromm, Karla, designer. ; University of Idaho. Press, publisher. ; Thomson-Shore, Inc., printer, binder.",1991,,Architecture -- Idaho,,,176,TRUE,"illustrations, map, plans",11.4,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9946972601851
+Idaho's Constitution : the tie that binds,"Colson, Dennis C.",1991,,Constitutional history -- Idaho; Constitutional conventions -- Idaho -- History;Constitutional history -- Idaho,,History,299,FALSE,,9.4,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma996726801851
+Powers which we do not know : the gods and spirits of the Inuit,"Merkur, Daniel. ; Lehman, Ellen J., 1944- donor.",1991,,Eskimos -- Religion; Eskimo mythology; Inuit gods; Inuit -- Religion; Inuit mythology,,,290,FALSE,,9.1,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9948787501851
+Lives of the saints in southeast Idaho : an introduction to Mormon pioneer life story writing,"Swetnam, Susan H.",1991,,Latter Day Saints -- Idaho -- Social life and customs; Latter Day Saints -- Idaho -- Biography -- History and criticism; Latter Day Saints -- Material culture -- Idaho; Frontier and pioneer life -- Idaho; Idaho -- Social life and customs,Northwest folklife.,"Criticism, interpretation, etc; Biographies",193,FALSE,,9.1,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9948619201851
+What Thoreau said : Walden and the unsayable,"Johnson, William C. (William Clark), 1945-",1991,,"Reader-response criticism; Thoreau, Henry David, 1817-1862 Walden; Thoreau, Henry David, 1817-1862",,,189,FALSE,,8.7,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9947383401851
+Bonanza rich : lifestyles of the western mining entrepreneurs,"Peterson, Richard H.",1991,,Mineral industries -- West (U.S.) -- History -- 19th century; Industrialists -- West (U.S.) -- History -- 19th century; Millionaires -- West (U.S.) -- History -- 19th century; Wealth -- West (U.S.) -- History -- 19th century; West (U.S.) -- Social conditions,,History,206,FALSE,,9.4,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma996821201851
+Mandan social and ceremonial organization,"Bowers, Alfred W.",1991,,Mandan Indians -- Rites and ceremonies; Mandan Indians -- Social life and customs; Mandan Indians -- Religion; Social structure -- Great Plains,,,423,TRUE,illustrations,9.1,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9948251801851
+Silver strike : the true story of silver mining in the Coeur d'Alenes,"Stoll, William T. (William Tecumseh), 1859-1931.",1991,,"Silver mines and mining -- Idaho -- Coeur d'Alene Region -- History; Coeur d'Alene Region (Idaho) -- History; Stoll, William T (William Tecumseh), 1859-1931","Idaho yesterdays (Moscow, Idaho)",History,292,TRUE,illustrations,8.7,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma996772501851
+Ethics and agriculture : an anthology on current issues in world context,"Blatz, Charles V.",1991,,Agriculture -- Moral and ethical aspects; Agriculture,,,684,TRUE,illustrations,9.4,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9947844101851
+Myths of Idaho Indians,"Walker, Deward E.",1991,1980,Indian mythology -- Idaho; Indians of North America -- Idaho -- Folklore,,Folklore,204,TRUE,"illustrations, map",8.7,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9997828610001451
+Conflict & schism in Nez Percé acculturation : a study of religion and politics,"Walker, Deward E.",1991,1985,"Nez Percé Indians -- Social conditions; Nez Percé Indians -- Missions; Acculturation -- Northwest, Pacific",,,197,TRUE,illustrations,9.1,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9993602310001451
+Elegies and love songs,"Young, Margaret Blair, 1955-",1992,,,,Fiction,134,FALSE,,8.3,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9949499001851
+Warcraft and the fragility of virtue : an essay in Aristotelian ethics,"Davis, Grady Scott.",1992,,War (Philosophy); Just war doctrine; Justice; Virtue; Pacifism; Virtue; Aristotle -- Ethics,,,205,FALSE,,9.1,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma996941601851
+Honey in the horn,"Davis, H. L. (Harold Lenoir), 1896-1960.",1992,,Frontier and pioneer life -- Oregon -- Fiction; Oregon -- Fiction,,Fiction; Western stories; Western fiction,399,FALSE,,8.3,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma996874101851
+Sheep may safely graze : a personal essay on tradition and a contemporary sheep ranch,"Attebery, Louie W. (Louie Wayne), 1927-",1992,,Sheep ranches -- Idaho; Sheep -- Idaho; Ranch life -- Idaho; Soulen family,Publication in northwest folklife.,,151,TRUE,illustrations,8.3,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma996990101851
+Fruit fields in my blood : Okie migrants in the West,"Sonneman, Toby F., 1949- ; Steigmeyer, Rick, 1947-",1992,,Migrant agricultural laborers -- West (U.S.); Fruit trade -- West (U.S.) -- Employees,,,222,TRUE,illustrations,10.6,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9949080201851
+"Earthlight, wordfire : the work of Ivan Doig","Simpson, Elizabeth, 1951-",1992,,"West (U.S.) -- In literature; Doig, Ivan -- Criticism and interpretation",Northwest folklife.,"Criticism, interpretation, etc",224,TRUE,illustrations,9.1,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9949252001851
+Old West--new West : centennial essays,"Meldrum, Barbara Howard.",1993,,"American literature -- West (U.S.) -- History and criticism; Authors, American -- Homes and haunts -- West (U.S.); Western stories -- History and criticism; West (U.S.) -- Intellectual life; West (U.S.) -- In literature",,"Aufsatzsammlung; Criticism, interpretation, etc",329,FALSE,,9.1,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9949821001851
+"Mining engineers and the American West : the lace-boot brigade, 1849-1933","Spence, Clark C.",1993,,Mining engineering -- West (U.S.) -- History; Mining engineers -- West (U.S.) -- History,,History,419,TRUE,"illustrations, maps",9.1,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9951116701851
+The Nez Perces since Lewis and Clark,"McBeth, Kate C., 1832-1915.",1993,,"Nez Percé Indians -- Missions; Missionaries -- Idaho -- Biography; Presbyterians -- Missions -- Idaho; Nez Percé Indians -- History; Nez Percé Indians -- Social conditions; McBeth, Kate C., 1832-1915","Idaho yesterdays (Moscow, Idaho)",autobiographies (literary works); Biographies; History; Autobiographies,291,TRUE,illustrations,8.3,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9950134301851
+"Beer and brewing in the inland Northwest, 1850 to 1950","Ronnenberg, Herman W., author.",1993,,Brewing industry -- Idaho -- History,Northwest folklife.,History,253,TRUE,"illustrations, maps",9.4,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9950201301851
+Mushrooms of Idaho and the Pacific Northwest,"Tylutki, Edmund E.",1993,,"Mushrooms -- Idaho -- Identification; Mushrooms -- Northwest, Pacific -- Identification",Northwest naturalist books.,Field guides,0,TRUE,illustrations,8.3,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9994056020001451
+History of Idaho,"Arrington, Leonard J.",1994,,Idaho -- History,,History,406,TRUE,illustrations,9.1,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma99167724540001451
+A shadow in the forest : Idaho's black bear,"Beecham, John. ; Rohlman, Jeff. ; Idaho. Department of Fish and Game.",1994,,Black bear -- Idaho; Bear populations -- Idaho,Northwest naturalist books.,,263,TRUE,"illustrations, maps",5.1,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9952376001851
+Call of the Colorado,"Webb, Roy.",1994,,Colorado River (Colo.-Mexico) -- Description and travel; Colorado River (Colo.-Mexico) -- History; Colorado River Region (Colo.-Mexico) -- Description and travel; Colorado River Region (Colo.-Mexico) -- History,,History,187,TRUE,"illustrations, maps",9.1,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9951286301851
+A ram in the thicket : the story of a roaming homesteader family on the Mormon frontier,"Robertson, Frank C. (Frank Chester), 1890-1969.",1994,,"Authors, American -- 20th century -- Biography; Latter Day Saint pioneers -- Idaho -- Moscow -- Biography; Western stories -- Authorship; Moscow (Idaho) -- Biography; Robertson, Frank C (Frank Chester), 1890-1969","Idaho yesterdays (Moscow, Idaho)",Autobiographies; collective biographies; Biographies,361,TRUE,illustrations,8.3,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9952758001851
+Where the morning light's still blue : personal essays about Idaho,"Studebaker, William. ; Ardinger, Richard.",1994,,Idaho -- Description and travel; Idaho -- Social life and customs,,,213,FALSE,,8.7,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma997207901851
+The landscapes of Craters of the Moon National Monument : an evaluation of environmental changes,"Wright, R. Gerald. ; Bunting, Stephen C.",1994,,Vegetation dynamics -- Idaho -- Craters of the Moon National Monument; Plant ecology -- Idaho -- Craters of the Moon National Monument; Ecology -- Idaho -- Craters of the Moon National Monument; Natural history -- Idaho -- Craters of the Moon National Monument; Vegetation dynamics -- Idaho -- Craters of the Moon National Monument -- Pictorial works; Plant ecology -- Idaho -- Craters of the Moon National Monument -- Pictorial works; Ecology -- Idaho -- Craters of the Moon National Monument -- Pictorial works; Natural history -- Idaho -- Craters of the Moon National Monument -- Pictorial works; Craters of the Moon National Monument (Idaho); Craters of the Moon National Monument (Idaho) -- Pictorial works,Northwest naturalist books.,Illustrated works,113,TRUE,"illustrations, maps",9.1,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9951263901851
+Coxey's army : an American odyssey,"Schwantes, Carlos A., 1945-",1994,,"Working class -- United States -- History; Unemployed -- United States -- History; Coxey, Jacob Sechler, 1854-1951",,History,333,TRUE,"illustrations, map",8.7,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9952365501851
+Conservation and management of neotropical migrant landbirds in the Northern Rockies and Great Plains,"Dobkin, David S.",1994,,Birds -- Migration -- Rocky Mountains; Birds -- Migration -- Great Plains; Birds -- Conservation -- Rocky Mountains; Birds -- Conservation -- Great Plains; Bird populations -- Rocky Mountains; Bird populations -- Great Plains; Conservation of natural resources,Northwest naturalist books.,,233,TRUE,illustrations,11,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9985354201851
+"Radical heritage : labor, socialism, and reform in Washington and British Columbia, 1885-1917","Schwantes, Carlos A., 1945-",1994,,Labor unions -- Political activity -- Washington (State) -- History; Labor unions -- Political activity -- British Columbia -- History; Socialism -- Washington (State); Socialism -- British Columbia,,History,306,TRUE,maps,9.1,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9953195601851
+Encounters with a distant land : exploration and the great Northwest,"Schwantes, Carlos A., 1945-; Pickett, Evelyne.",1994,,"Northwest, Pacific -- Discovery and exploration",,,232,TRUE,illustrations,9.8,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9951968301851
+Smokechaser,"Yahr, Warren, 1928-",1995,,"Fire lookouts -- Idaho -- Clearwater National Forest -- Biography; Fire lookout stations -- Idaho -- Clearwater National Forest -- History; Clearwater National Forest (Idaho) -- History; Yahr, Warren, 1928-",,Autobiographies; Biographies; History,269,TRUE,"illustrations, map",9.1,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9953487401851
+"British investments and the American mining frontier, 1860-1901","Spence, Clark C.",1995,,"Mineral industries -- West (U.S.) -- Foreign ownership -- History -- 19th century; Corporations, British -- West (U.S.) -- History -- 19th century; Investments, British -- West (U.S.) -- History -- 19th century",,History,297,TRUE,illustrations,9.1,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9952635901851
+Wild trees of Idaho,"Johnson, Frederic D. (Frederic Duane), 1925-2014.",1995,,Trees -- Idaho -- Identification; Leaves -- Idaho -- Identification; Trees -- Idaho -- Pictorial works; Leaves -- Idaho -- Pictorial works,Northwest naturalist books.,Field guides; Illustrated works,255,TRUE,"illustrations, maps",10.2,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9953687801851
+Fair barbarian,"Burnett, Frances Hodgson, 1849-1924. ; Cairns Collection of American Women Writers.",1995,1880,Americans -- England -- Fiction; Young women -- Fiction; Villages -- Fiction; England -- Fiction,,Love stories; Bildungsromans; Romance fiction; Fiction,0,FALSE,,7.1,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9975269201851
+Rationality and ethics in agriculture,"Lehman, Hugh.",1995,,Agriculture -- Moral and ethical aspects; Rationalism,,,239,FALSE,,9.1,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma997360501851
+Dire Wolf and other fierce and fanciful works by sculptor George Roberts,"Roberts, George, 1927- ; Jacobson, Robert, 1926-2021.",1995,,"Roberts, George, 1927- -- Themes, motives -- Catalogs",,Catalogs,150,TRUE,illustrations,9.8,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9953106501851
+"The adventures of ""Indiana"" Hannebaum","Hannebaum, Harold W., 1910-",1995,,"Inventors -- United States -- Biography; Hannebaum, Harold W., 1910-",,Autobiographies; Biographies,0,FALSE,,9.1,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma997381601851
+Parallel expeditions : Charles Darwin and the art of John Steinbeck,"Railsback, Brian E.",1995,,"Literature and science -- United States -- History -- 20th century; American fiction -- English influences; Evolution (Biology) in literature; Social Darwinism in literature; Evolution in literature; Biology in literature; Steinbeck, John, 1902-1968 -- Knowledge and learning; Darwin, Charles, 1809-1882 -- Influence",,History,168,FALSE,,9.4,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9953170001851
+The Arams of Idaho : pioneers of Camas Prairie and Joseph Plains,"Youngdahl, Kristi M., 1948-",1995,,Pioneers -- Idaho -- Joseph Plains -- Biography; Frontier and pioneer life -- Idaho -- Joseph Plains; Joseph Plains (Idaho) -- Biography; Camas Prairie (Idaho) -- History; Aram family,,collective biographies; History; Biographies,230,TRUE,illustrations,9.1,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9953613501851
+The Sunshine Mine disaster,"Brock, James, 1958-",1995,,"Sunshine Mine Disaster, Kellogg, Idaho, 1972 -- Poetry; Mines and mineral resources -- Poetry; Silver mines and mining -- Poetry; Mine accidents -- Poetry; Silver miners -- Poetry; Kellogg (Idaho) -- Poetry",,poetry,74,TRUE,illustrations,9.1,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9953593101851
+The Bannock of Idaho,"Madsen, Brigham D.",1996,,Bannock Indians -- History,"Idaho yesterdays (Moscow, Idaho)",History,382,TRUE,"illustrations, map",8.3,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9954990801851
+Monkey mountain madness,"Phillips, Jeanne, 1926-",1996,,"Montana -- Biography; Phillips, Jeanne, 1926-",Living the West.,Autobiographies; Biographies,168,FALSE,,7.5,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9954367501851
+"Nez Perce women in transition, 1877-1990","James, Caroline.",1996,,Nez Percé women -- History; Nez Percé women -- Social conditions; Nez Percé women -- Politics and government,,History,274,TRUE,"illustrations, maps",10.6,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9954147501851
+Work as art : Idaho logging as an aesthetic moment,"James-Duguid, Charlene, 1942-",1996,,Logging -- Idaho -- Orofino; Loggers -- Idaho -- Orofino -- Biography; Orofino (Idaho) -- Biography; Orofino (Idaho) -- Social life and customs,Publication in northwest folklife.,collective biographies; Biographies,148,TRUE,illustrations,9.4,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9954128701851
+A pioneer of American folklore : Karl Knortz and his collections,"Schamschula, Eleonore.",1996,,"Folklore -- United States; Knortz, Karl, 1841-1918; Folklorists -- United States; Folklorists -- Germany",Northwest folklife.,,326,FALSE,,9.4,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma997497001851
+Loaded fictions : social critique in the twentieth-century western,"Emmert, Scott, 1962-",1996,,Western stories -- History and criticism; American fiction -- 20th century -- History and criticism; American fiction -- West (U.S.) -- History and criticism; Literature and society -- West (U.S.); Social problems in literature,,"Criticism, interpretation, etc",212,FALSE,,9.4,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9954787501851
+So Incredibly Idaho! : seven landscapes that define the gem state,"Schwantes, Carlos A., 1945-",1996,,Landscapes -- Idaho -- Pictorial works; Landscape photography -- Idaho; Idaho -- Pictorial works,,Nonfiction; illustrated books; Illustrated works,167,TRUE,"color illustrations, color maps",9.4,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9954292201851
+Hidatsa suprasegmentals : a phonological analysis of a Siouan Native North American language,"Bowers, Norman A., 1949-",1996,,"Hidatsa language -- Phonology; Hidatsa language -- Prosodic analysis; Hidatsa language -- Grammar, Comparative",,,265,TRUE,"illustrations, map",11.4,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9954293601851
+Wise economies : brevity and storytelling in American short stories,"Curnutt, Kirk, 1964-",1997,,"Short stories, American -- History and criticism; Narration (Rhetoric)",,"Criticism, interpretation, etc",327,FALSE,,9.4,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9955740601851
+The world of David Wagoner,"McFarland, Ronald E.",1997,,"Northwestern States -- In literature; Middle West -- In literature; Wagoner, David -- Criticism and interpretation",,"Criticism, interpretation, etc",222,FALSE,,9.4,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma997641801851
+Glen Canyon and the San Juan country,"Topping, Gary, 1941-",1997,,Glen Canyon (Utah and Ariz.) -- History; San Juan River Valley (Colo.-Utah) -- History,,History,419,TRUE,"illustrations, map",9.4,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma997740401851
+Mavericks : the lives and battles of Montana's political legends,"Morrison, John, 1961- ; Morrison, Catherine Wright, 1962-",1997,,Politicians -- Montana -- Biography; Montana -- Politics and government; Montana -- Biography,,collective biographies; Biographies,340,TRUE,illustrations,9.4,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma997785901851
+Cowboy memories of Montana,"Perrault, Mark, 1915- author.",1997,,"Ranch life -- Montana -- Madison County -- History -- 20th century; Cowboys -- Montana -- Madison County -- Biography; River Ranch (Mont.); Madison County (Mont.) -- Social life and customs; Perrault, Mark, 1915-",Living the West.,collective biographies; History; Biographies,199,TRUE,"illustrations, map",9.4,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9955897401851
+The Milwaukee Road revisited,"Johnson, Stanley W., 1928-",1997,,"Railroads -- Northwest, Pacific; Chicago, Milwaukee, St. Paul, and Pacific Railroad Company",,,239,TRUE,"illustrations, map",9.4,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma997625201851
+The great poem of the Earth : a study of the poetry of Thomas Hornsby Ferril,"Elkins, Andrew, 1950-",1997,,"Nature in literature; West (U.S.) -- In literature; Ferril, Thomas Hornsby, 1896-1988 -- Criticism and interpretation",,"Criticism, interpretation, etc",230,TRUE,illustrations,9.4,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9955091301851
+Travelers in an antique land,"Studebaker, William. ; Hepworth, Russell, 1949-",1997,,West (U.S.) -- Poetry; West (U.S.) -- Pictorial works,,poetry; Pictorial works; Poetry,89,TRUE,illustrations,10.2,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma997739701851
+"Fire, faults & floods : a road & trail guide exploring the origins of the Columbia River basin","Mueller, Marge. ; Mueller, Ted.",1997,,Geology -- Columbia River Watershed -- Guidebooks; Volcanism -- Columbia River Watershed -- Guidebooks; Columbia River Watershed -- Guidebooks,Northwest naturalist books.,Guidebooks,288,TRUE,"illustrations, maps",8.7,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9964358301851
+One winter in the wilderness,"Peek, Pat Cary, 1937-",1998,,"Natural history -- Idaho -- Frank Church-River of No Return Wilderness -- Anecdotes; Peek, Pat Cary, 1937- -- Diaries",,Anecdotes; Diaries,281,TRUE,"illustrations, map",9.4,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma998075601851
+Rock burst,"Russell, Bert, 1909-1997. ; Russell, Marie, 1921-",1998,,Miners -- Idaho -- Coeur d'Alene River Region -- Interviews; Miners -- Idaho -- Coeur d'Alene River Region -- Social life and customs; Miners -- Idaho -- Coeur d'Alene River region -- Social conditions; Mines and mineral resources -- Idaho -- Coeur d'Alene River Region -- History -- 20th century; Coeur d'Alene River Region (Idaho) -- Biography; Coeur d'Alene River Region (Idaho) -- Social life and customs,Living the West.,Biographies; History; Interviews,425,TRUE,"illustrations, map",9.4,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma997904801851
+Raising the roof : creating the Kibbie Dome at the University of Idaho,"Johnson, Peter, 1932-",1998,,"Roofs, Shell -- Idaho -- Moscow -- Design and construction; Wooden-frame buildings -- Idaho -- Moscow -- Design and construction; Moscow (Idaho) -- Buildings, structures, etc; William H. Kibbie-ASUI Activity Center Dome (Moscow, Idaho) -- Design and construction; University of Idaho -- Buildings",,,61,TRUE,illustrations,9.8,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9956576501851
+"Tricky tribal discourse : the poetry, short stories, and Fus Fixico letters of Creek writer Alex Posey","Kosmider, Alexia Maria.",1998,,"American literature -- Indian authors -- History and criticism; American wit and humor -- History and criticism; Indians of North America -- Intellectual life; Frontier and pioneer life in literature; Creek Indians -- Civilization; Discourse analysis, Literary; Tricksters in literature; Indians in literature; Indian Territory -- In literature; West (U.S.) -- In literature; Posey, Alexander Lawrence, 1873-1908 -- Criticism and interpretation; Posey, Alexander Lawrence, 1873-1908 -- Influence",,"Criticism, interpretation, etc",116,FALSE,,9.4,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9955928401851
+"Green cultural studies : nature in film, novel, and theory","Hochman, Jhan, 1952-",1998,,Nature in motion pictures;Nature in literature; English literature -- 20th century -- History and criticism,,"Criticism, interpretation, etc",234,FALSE,,9.4,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9956944401851
+The automobile gold rushes and Depression era mining,"Miller, Charles Wallace.",1998,,Gold industry -- United States -- History -- 20th century; Gold mines and mining -- United States -- History -- 20th century; Bimetallism -- United States -- History -- 20th century; Gold standard -- History -- 20th century; Depressions -- 1929 -- United States,,History,200,TRUE,"illustrations, maps",9.4,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9956288301851
+Building with logs : western log construction in context,"Attebery, Jennifer Eastman, 1951-",1998,,"Log buildings -- West (U.S.) -- Design and construction; Building, Wooden -- West (U.S.)",,,163,TRUE,illustrations,9.4,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9960700201851
+Governor Smylie remembers,"Smylie, Robert E. (Robert Eben), 1914-2004.",1998,,"Governors -- Idaho -- Biography; Idaho -- Politics and government; Smylie, Robert E (Robert Eben), 1914-2004",,Autobiographies; collective biographies; Biographies,249,TRUE,illustrations,9.4,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma997946701851
+Through the Yellowstone Park on horseback,"Wingate, George Wood, 1840-1928.",1999,,"Packhorse camping -- Yellowstone National Park; Yellowstone National Park -- Description and travel; Yellowstone National Park -- History; Wingate, George Wood, 1840-1928 -- Travel -- Yellowstone National Park","Idaho yesterdays (Moscow, Idaho)",History,250,TRUE,illustrations,7.5,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma998400301851
+"Chief Pocatello ; Chief Pocatello, the ""White Plume""","Madsen, Brigham D.",1999,,"Shoshoni Indians -- Biography; Shoshoni Indians -- History; Pocatello, Chief","Idaho yesterdays (Moscow, Idaho)",History; Biographies,142,TRUE,"illustrations, maps",8.7,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9958610901851
+At the Hemingways : with fifty years of correspondence between Ernest and Marcelline Hemingway,"Sanford, Marcelline Hemingway, 1898-1963. ; Hemingway, Ernest, 1899-1961.",1999,,"Authors, American -- 20th century -- Family relationships; Siblings -- United States; Hemingway, Ernest, 1899-1961 -- Family; Sanford, Marcelline Hemingway, 1898-1963 -- Correspondence; Hemingway, Ernest, 1899-1961 -- Correspondence; Sanford, Marcelline Hemingway, 1898-1963; Hemingway family",,Biographies; letters (correspondence); personal correspondence; Personal correspondence,411,TRUE,illustrations,8.3,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma99663601851
+For Wood River or bust : Idaho's silver boom of the 1880s,"Spence, Clark C.",1999,,Frontier and pioneer life -- Idaho -- Big Wood River -- Juvenile literature; Silver mines and mining -- Idaho -- Big Wood River -- History -- 19th century -- Juvenile literature; Big Wood River (Idaho) -- History -- Juvenile literature,Idaho legacy series.,History; Juvenile works,271,TRUE,"illustrations, map",9.4,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma998319801851
+Hemingway and the natural world,"Fleming, Robert E. (Robert Edward), 1936-",1999,,"Nature in literature; Hemingway, Ernest, 1899-1961 -- Knowledge and learning",,Aufsatzsammlung,278,TRUE,illustrations,9.4,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9962992601851
+Women on the run,"Hale, Janet Campbell.",1999,,Indians of North America -- Fiction; Women -- United States -- Fiction; Indian women -- Fiction; United States -- Social life and customs -- 20th century -- Fiction,,Fiction,178,FALSE,,8.7,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma99681001851
+Mountain man : a novel of male and female in the early American West,"Fisher, Vardis, 1895-1968.",2000,,Trappers -- Fiction; Women pioneers -- Fiction; Mountain life -- Fiction; Indian women -- Fiction; Rocky Mountains -- Fiction,,Fiction; Western stories; Love stories; Domestic fiction,356,TRUE,map,7.1,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9961429801851
+"Minnesota diary, 1942-46","Lewis, Sinclair, 1885-1951. ; Killough, George.",2000,,"Novelists, American -- 20th century -- Diaries; Minnesota -- Intellectual life -- 20th century; Lewis, Sinclair, 1885-1951 -- Diaries; Lewis, Sinclair, 1885-1951 -- Homes and haunts -- Minnesota",,Autobiographies; diaries; Diaries,304,TRUE,illustrations,9.4,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9961430401851
+Columbia River : gateway to the West,"Schwantes, Carlos A., 1945-",2000,,Columbia River -- History; Columbia River -- Description and travel; Columbia River -- Pictorial works,,illustrated books; History; Illustrated works,126,TRUE,"illustrations, map",9.8,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9961338001851
+Rediscovering Vardis Fisher : centennial essays,"Flora, Joseph M.",2000,,"West (U.S.) -- In literature; Fisher, Vardis, 1895-1968 -- Criticism and interpretation",,"Criticism, interpretation, etc",267,TRUE,illustrations,9.4,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9961435301851
+Written on water : essays on Idaho rivers,"Blew, Mary Clearman, 1939-",2001,,Rivers -- Idaho; Landscapes -- Idaho; Idaho -- Description and travel; Idaho -- Biography; Idaho -- Social life and customs,,Biographies,229,TRUE,illustrations,9.1,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9961355101851
+At home afloat : women on the waters of the Pacific Northwest,"Pagh, Nancy, 1963-",2001,,"Women and the sea -- Northwest, Pacific; Seafaring life -- Northwest, Pacific; Boats and boating -- Northwest, Pacific; Sex role -- Northwest, Pacific",,,198,TRUE,illustrations,9.1,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9961191501851
+Hate is my neighbor,"Alibrandi, Tom. ; Wassmuth, Bill.",2001,,White supremacy movements -- Idaho; Antisemitism -- Idaho; Racism -- Idaho; Idaho -- Race relations,Idaho human rights series.,,210,FALSE,,8.7,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9964388301851
+"Tough trip through paradise, 1878-1879","Garcia, Andrew, -1943. ; Stein, Bennett H.",2001,,"Frontier and pioneer life -- Montana; Trapping -- Montana -- History -- 19th century; Indians of North America -- Montana -- History -- 19th century; Nez Percé Indians -- Montana -- History -- 19th century; Nez Percé Indians -- Wars, 1877; Pioneers -- Montana -- Biography; Adventure and adventurers -- Montana -- Biography; Montana -- Description and travel; Montana -- History -- 19th century; Garcia, Andrew, -1943",,History; Biographies,427,TRUE,maps,7.1,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9963710701851
+Death and the good life : a mystery,"Hugo, Richard, 1923-1982. ; Welch, James, 1940-2003, writer of foreword.",2002,,"Ex-police officers -- Fiction; Fishers -- Crimes against -- Fiction; Women murderers -- Fiction; American fiction -- 20th century; Northwest, Pacific -- Fiction; Montana -- Fiction",,Fiction; Mystery fiction; Detective and mystery fiction,242,FALSE,,8.7,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9969893101851
+The Nez Perce nation divided : firsthand accounts of events leading to the 1863 treaty,"Baird, Dennis W.; Mallickan, Diane. ; Swagerty, William R.",2002,,Nez Percé Indians -- History -- Sources; Nez Percé Indians -- Land tenure; Clearwater River Region (Idaho) -- History -- Sources,Voices from Nez Perce country ; 2. ; Idaho legacy series.,History; Sources,484,TRUE,"illustrations, maps",10.6,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9967523401851
+Hike Lewis and Clark's Idaho,"Aegerter, Mary. ; Russell, Steve F.",2002,,Hiking -- Idaho -- Guidebooks; Idaho -- Guidebooks; Lewis and Clark Expedition (1804-1806),,Guidebooks,235,TRUE,"illustrations, maps",8.7,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9967491901851
+Gold camps & silver cities : nineteenth-century mining in central and southern Idaho,"Wells, Merle W.",2002,,Gold mines and mining -- Idaho; Lead mines and mining -- Idaho; Silver mines and mining -- Idaho; Idaho -- History,"Idaho yesterdays (Moscow, Idaho)",History,245,TRUE,"illustrations, maps",9.4,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9967522301851
+Lewis and Clark's mountain wilds : a site guide to the plants and animals they encountered in the Bitterroots,"Ritter, Sharon A.",2002,,Natural history -- Bitterroot Range (Idaho and Mont.) -- Guidebooks; Bitterroot Range (Idaho and Mont.) -- Guidebooks; Lewis and Clark Expedition (1804-1806),,travel guidebooks; Guidebooks,328,TRUE,illustrations,9.1,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9967522101851
+In Nez Perce country : accounts of the Bitterroots and the Clearwater after Lewis and Clark,"Baird, Lynn (Lynn N.), compiler. ; Baird, Dennis W.",2003,,Nez Percé Indians -- History; Clearwater National Forest (Idaho) -- History; Bird-Truax Trail (Idaho and Mont.) -- History; Northern Pacific Railroad Company -- History; Lewis and Clark Expedition (1804-1806),Northwest historical manuscript series.,History,296,TRUE,"illustrations, maps",9.1,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9972108601851
+Teaching Hemingway's The sun also rises,"Hays, Peter L., 1938-",2003,,"Expatriation in literature; France -- In literature; Spain -- In literature; Hemingway, Ernest, 1899-1961 Sun also rises; Hemingway, Ernest, 1899-1961 -- Study and teaching",Teaching Hemingway.,,412,FALSE,,9.4,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9973177201851
+"Common courage : Bill Wassmuth, human rights, and small-town activism","Vogt, Andrea, 1971-",2003,,"Human rights workers -- West (U.S.) -- Biography; Human rights -- West (U.S.); Social justice -- West (U.S.); Catholic Church -- West (U.S.) -- Clergy -- Biography; Wassmuth, Bill",,collective biographies; Biographies,265,TRUE,illustrations,8.7,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9972149801851
+Bold spirit : Helga Estby's forgotten walk across Victorian America,"Hunt, Linda, 1940-",2003,,"Walking -- United States -- History -- 19th century; Norwegian Americans -- Biography; Mothers and daughters -- United States -- Biography; United States -- Description and travel; United States -- Social life and customs -- 1865-1918; Estby, Helga, 1860-1942 -- Travel -- United States; Estby, Clara, 1876-1950 -- Travel -- United States",,History; Biographies,322,TRUE,illustrations,7.5,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9969864801851
+Forged in fire : essays by Idaho writers,"Blew, Mary Clearman, 1939-; Druker, Phil.",2005,,"American literature -- Idaho -- History and criticism; Authors, American -- Homes and haunts -- Idaho; American essays -- Idaho; Fire in literature; Authorship; American literature -- Idaho -- Literary collections; American essays -- Idaho -- Literary collections; Idaho -- Intellectual life; Idaho -- In literature",,"Literary collections; Criticism, interpretation, etc",261,FALSE,,9.1,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma9995018401851
+The island of the Anishnaabeg : thunderers and water monsters in the traditional Ojibwe life-world,"Smith, Theresa S., 1956-",2012,,Ojibwa Indians -- Religion; Ojibwa mythology; Manitoulin Island (Ont.) -- Religious life and customs,,,246,TRUE,illustrations,9.1,https://alliance-uidaho.primo.exlibrisgroup.com/permalink/01ALLIANCE_UID/1ldrjcp/alma99116644820001451`;
+function openCsvModal(){
+  document.getElementById("csv-pre").textContent = CSV_RAW;
+  const m = document.getElementById("csv-modal");
+  m.style.display = "flex";
+  document.body.style.overflow = "hidden";
+}
+function closeCsvModal(){
+  document.getElementById("csv-modal").style.display = "none";
+  document.body.style.overflow = "";
+}
+function downloadCsv(){
+  const blob = new Blob([CSV_RAW],{type:"text/csv"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href=url; a.download="uofipress_standardized_permalink.csv";
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),3000);
+}
+document.getElementById("csv-modal").addEventListener("click",function(e){
+  if(e.target===this) closeCsvModal();
+});
+</script>
+
+</body>
+</html>

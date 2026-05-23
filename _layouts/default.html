@@ -6,18 +6,20 @@
 
   <body class="d-flex flex-column h-100">
     <div id="skip-to-content"><a href="#maincontent">Skip to main content</a></div>
-    <header>
-    {% include template/top-nav.html %}
-    </header>
+      {% unless page.hide_chrome %}
+      <header>
+        {% include template/top-nav.html %}
+      </header>
+      {% endunless %}
 
-    <main id="maincontent" role="main" aria-label="Content" class="flex-shrink-0">
-      
-      {{ content }}
-      
-    </main>
+      <main id="maincontent" ...>
+        {{ content }}
+      </main>
 
-    {% include template/footer.html %}
-    {% include template/foot.html %}
+      {% unless page.hide_chrome %}
+        {% include template/footer.html %}
+        {% include template/foot.html %}
+      {% endunless %}
 
   </body>
 
