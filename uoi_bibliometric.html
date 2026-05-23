@@ -207,8 +207,9 @@ body {
 #sidenav a:hover {
   color: var(--amber);
 }
-@media (max-width: 900px) {
+@media (max-width: 1180px), (orientation: landscape) and (max-height: 700px) {
   #sidenav { display: none; }
+  #top-btn  { display: none; }
 }
 #top-btn {
   position: fixed;
@@ -312,12 +313,27 @@ body {
   }
 }
 </style>
+<script>
+// When embedded as an iframe on a same-origin page, hide the outer page's scrollbar.
+// The iframe itself handles all scrolling; the outer scroll is redundant.
+(function() {
+  try {
+    if (window.self !== window.top) {
+      var p = window.parent.document;
+      p.documentElement.style.overflow = 'hidden';
+      p.documentElement.style.height   = '100%';
+      p.body.style.overflow = 'hidden';
+      p.body.style.height   = '100%';
+    }
+  } catch(e) { /* cross-origin: silently skip */ }
+})();
+</script>
 </head>
 <body>
-<nav id="sidenav" aria-label="Jump to visualization">
+<nav id="sidenav">
   <a href="#sec-timeline">Publications<br>Over Time</a>
-  <a href="#sec-themes">Thematic<br>Distribution</a>
-  <a href="#sec-overlap">Subject<br>Overlap</a>
+  <a href="#sec-themes">Themes<br>Over Time</a>
+  <a href="#sec-overlap">Subject<br>Frequency</a>
   <a href="#sec-tech">Technical<br>Details</a>
 </nav>
 <button id="top-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})" aria-label="Back to top">
@@ -334,7 +350,7 @@ window.addEventListener('scroll', function() {
 
 <div class="page-header">
   <h1>University of Idaho Press<br><span>Bibliometric Analysis</span></h1>
-  <p class="sub">1966 – 2012 · subject headings · processing difficulty · thematic distribution</p>
+  <p class="sub">1966 – 2012 · subject headings · technical details · themes over time</p>
   <div class="stats-row" id="stats"></div>
   <p class="header-desc">Visualizations to help inform University of Idaho Press decisions on selecting legacy titles for republication. Original export data was standardized and deduplicated. Technical details were separated and page count data combined. See the button on the bottom of the interface to view raw data.</p>
 </div>
@@ -342,7 +358,7 @@ window.addEventListener('scroll', function() {
 
 <section class="viz-section" id="sec-timeline">
   <div class="section-header">
-    <h2>Publications Over Time — <span>scope &amp; page count</span></h2>
+    <h2>Publications Over Time</h2>
     <p>Each node is one title. Horizontal position = publication year. Vertical position = total page count. Scale represents subject heading count. Color represents genre. Hover for technical details. Select any node to open its library record.</p>
   </div>
   <div class="chart-wrap">
@@ -354,7 +370,7 @@ window.addEventListener('scroll', function() {
 
 <section class="viz-section" id="sec-themes">
   <div class="section-header">
-    <h2>Thematic Distribution — <span>by decade</span></h2>
+    <h2>Themes Over Time</h2>
     <p>Subject headings standardized into eight themes. Each bar group represents one decade.</p>
   </div>
   <div class="chart-wrap">
@@ -366,7 +382,7 @@ window.addEventListener('scroll', function() {
 
 <section class="viz-section" id="sec-overlap">
   <div class="section-header">
-    <h2>Subject Overlap — <span>frequency across the corpus</span></h2>
+    <h2>Subject Frequency</h2>
     <p>Subject headings with three or more subgroups, arranged most-to-least frequent from top-left to bottom-right. Each heading ring has a unique color shared by its subgroup dots. Hover any ring for all titles under that heading; hover any dot to reveal the subgroup name and its titles.</p>
   </div>
   <div class="chart-wrap">
@@ -378,7 +394,7 @@ window.addEventListener('scroll', function() {
 
 <section class="viz-section" id="sec-tech">
   <div class="section-header">
-    <h2>Technical Details — <span>all titles by page count</span></h2>
+    <h2>Technical Details</h2>
     <p>All 125 titles with recorded page counts, sorted page count lowest to highest. Bars segmented by pages, dimensions, and illustration type count. Titles with no illustrations show only pages and dimensions. Click any bar to open its library record.</p>
   </div>
   <div class="chart-wrap">
@@ -555,7 +571,7 @@ function hideTip() { tip.classList.remove("show"); }
 
 
 // ================================================================
-// CHART 3 — THEMATIC DISTRIBUTION BY DECADE
+// CHART 3 — THEMES OVER TIME BY DECADE
 // ================================================================
 (function() {
   const decades = ["1960s","1970s","1980s","1990s","2000s","2010s"];
@@ -564,7 +580,11 @@ function hideTip() { tip.classList.remove("show"); }
     const dy = parseInt(dec);
     const db = books.filter(d => d.year >= dy && d.year < dy + 10);
     const obj = {decade: dec, total: db.length};
-    tKeys.forEach(t => { obj[t] = db.filter(b => b.themes.includes(t)).length; });
+    tKeys.forEach(t => {
+      const themed = db.filter(b => b.themes.includes(t));
+      obj[t] = themed.length;
+      obj[t + '__titles'] = themed.map(b => b.title);
+    });
     return obj;
   });
 
@@ -595,7 +615,7 @@ function hideTip() { tip.classList.remove("show"); }
 
 
   dg.selectAll("rect")
-    .data(d => tKeys.map(k => ({key:k, val:d[k], dec:d.decade, total:d.total})))
+    .data(d => tKeys.map(k => ({key:k, val:d[k], dec:d.decade, total:d.total, titles:d[k+'__titles']})))
     .join("rect")
     .attr("x",      d => x1(d.key))
     .attr("y",      d => y(d.val))
@@ -604,8 +624,12 @@ function hideTip() { tip.classList.remove("show"); }
     .attr("fill",   d => TCOL[d.key])
     .attr("opacity", 0.85)
     .on("mouseover", (e, d) => {
+      if (d.val === 0) return;
+      const listed = d.titles.slice(0, 12).map(t => t.length > 55 ? t.slice(0,54)+'…' : t).join('<br>');
+      const more   = d.titles.length > 12 ? `<span class="tm">+${d.titles.length - 12} more</span>` : '';
       showTip(e, `<strong>${d.key} — ${d.dec}</strong>
-        <span class="tm">${d.val} title${d.val !== 1 ? "s" : ""} out of ${d.total} published this decade</span>`);
+        <span class="tm">${d.val} title${d.val !== 1 ? "s" : ""} out of ${d.total} this decade</span>
+        <span class="ts" style="display:block;margin-top:4px;line-height:1.6">${listed}</span>${more}`);
     })
     .on("mousemove", moveTip)
     .on("mouseout",  hideTip);
@@ -654,7 +678,7 @@ function hideTip() { tip.classList.remove("show"); }
 
 
 // ================================================================
-// CHART 4 — SUBJECT OVERLAP: GRID-ORDERED NODE MAP
+// CHART 4 — SUBJECT FREQUENCY: GRID-ORDERED NODE MAP
 // ================================================================
 (function() {
   // ── Build hierarchy (3+ first-level subgroups) ────────────────
@@ -828,14 +852,7 @@ function hideTip() { tip.classList.remove("show"); }
     });
 
 
-    // Frequency count (lower-right inside ring)
-    svg.append('text')
-      .attr('x', n.x + n.r * 0.60).attr('y', n.y + n.r * 0.72)
-      .attr('text-anchor', 'middle')
-      .attr('fill', n.color).attr('fill-opacity', 0.65)
-      .attr('font-family', '"JetBrains Mono",monospace')
-      .attr('font-size', 8).attr('pointer-events', 'none')
-      .text(n.count);
+
   });
 
 
@@ -922,8 +939,8 @@ function hideTip() { tip.classList.remove("show"); }
     .on("mouseover", (e, d) => {
       const b = d.data;
       const illDetail = b.hasIllustrations
-        ? "Illustrated: " + (b.illTypes.length ? b.illTypes.join(", ") : "yes")
-        : "No illustrations";
+        ? "Images: " + (b.illTypes.length ? b.illTypes.join(", ") : "yes")
+        : "No Images";
       showTip(e, `<strong>${trunc(b.title, 64)}</strong>
         <span class="tm">${trunc(b.author.split(";")[0].trim(), 44)} · ${b.year}</span>
         <span class="tm">Pages: ${b.totalPages} · ${b.dimensions ? b.dimensions + '"' : "dim. unknown"}</span>
